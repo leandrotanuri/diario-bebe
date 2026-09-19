@@ -103,6 +103,8 @@
     display:flex; align-items:center; gap:14px;
   }
   .status.sleeping{background:var(--sleep-bg); border-color:transparent}
+  .status.feeding{background:var(--feed-bg); border-color:transparent}
+  .status.feeding .status-title{color:var(--feed)}
   .status-emoji{font-size:30px; line-height:1}
   .status-main{flex:1; min-width:0}
   .status-title{font-family:var(--font-d); font-weight:700; font-size:17px}
@@ -136,6 +138,7 @@
   .tile::after{content:""; position:absolute; inset:0 auto 0 0; width:5px; background:var(--c); opacity:.9}
   .tile.pulse{animation:pulse .5s ease}
   .tile.sleep.active{background:var(--sleep-bg); border-color:transparent}
+  .tile.feed.active{background:var(--feed-bg); border-color:transparent}
   @keyframes pulse{0%{background:var(--cb)}100%{background:var(--surface)}}
   @media (prefers-reduced-motion: reduce){ .tile,.icon-btn,.tile.pulse{transition:none;animation:none} }
 
@@ -167,8 +170,8 @@
   .ev:focus-visible{outline:3px solid var(--brand); outline-offset:2px}
   .ev-dot{width:38px; height:38px; flex:none; border-radius:12px; display:grid; place-items:center; font-size:20px}
   .ev-body{flex:1; min-width:0}
-  .ev-title{font-family:var(--font-d); font-weight:700; font-size:15.5px}
-  .ev-detail{font-size:13px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ev-title{display:block; font-family:var(--font-d); font-weight:700; font-size:15.5px}
+  .ev-detail{display:block; font-size:13px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ev-time{font-variant-numeric:tabular-nums; font-weight:700; font-family:var(--font-d);
     font-size:14px; color:var(--ink); text-align:right}
   .ev-ago{display:block; font-size:11px; color:var(--ink-soft); font-weight:400; font-family:var(--font-b)}
@@ -178,7 +181,9 @@
   .ev.sleep .ev-dot{background:var(--sleep-bg)} .ev.sleep .ev-title{color:var(--sleep)}
   .ev.note .ev-dot{background:var(--note-bg)} .ev.note .ev-title{color:var(--note)}
   .ev.example{opacity:.5}
-  .ev.ongoing{border-color:var(--sleep); border-style:dashed}
+  .ev.ongoing{border-style:dashed}
+  .ev.sleep.ongoing{border-color:var(--sleep)}
+  .ev.feed.ongoing{border-color:var(--feed)}
 
   .example-banner{font-size:12.5px; color:var(--ink-soft); text-align:center; margin:10px 4px 0}
   .empty{text-align:center; color:var(--ink-soft); padding:28px 20px; font-size:14.5px}
@@ -279,9 +284,9 @@
   </section>
 
   <div class="tiles">
-    <button class="tile feed" data-act="feed">
-      <span class="emoji">🍼</span>
-      <span><span class="label">Mamou</span><br><span class="hint">peito ou mamadeira</span></span>
+    <button class="tile feed" data-act="feed" id="feedTile">
+      <span class="emoji" id="feedEmoji">🍼</span>
+      <span><span class="label" id="feedLabel">Mamou</span><br><span class="hint" id="feedHint">iniciar mamada</span></span>
     </button>
     <button class="tile pee" data-act="pee">
       <span class="emoji">💧</span>
@@ -382,7 +387,7 @@ import { firebaseConfig } from "./firebase-config.js";
 
   function atToday(h,m){ var d=new Date(); d.setHours(h,m,0,0); return d.getTime(); }
   var EXAMPLES = [
-    {id:"ex1",type:"feed",ts:atToday(9,15),detail:"Peito esq.",note:"",example:true},
+    {id:"ex1",type:"feed",ts:atToday(9,15),endTs:atToday(9,32),detail:"Peito esq.",note:"",example:true},
     {id:"ex2",type:"pee",ts:atToday(9,20),note:"",example:true},
     {id:"ex3",type:"sleep",ts:atToday(10,0),endTs:atToday(11,30),note:"",example:true},
     {id:"ex4",type:"poop",ts:atToday(11,45),note:"",example:true}
@@ -475,6 +480,7 @@ import { firebaseConfig } from "./firebase-config.js";
     babyName:byId("babyName"), babySub:byId("babySub"),
     status:byId("status"), statusEmoji:byId("statusEmoji"),
     statusTitle:byId("statusTitle"), statusMeta:byId("statusMeta"), statusChips:byId("statusChips"),
+    feedTile:byId("feedTile"), feedEmoji:byId("feedEmoji"), feedLabel:byId("feedLabel"), feedHint:byId("feedHint"),
     sleepTile:byId("sleepTile"), sleepEmoji:byId("sleepEmoji"), sleepLabel:byId("sleepLabel"), sleepHint:byId("sleepHint"),
     viewToday:byId("viewToday"), viewSummary:byId("viewSummary"), statsGrid:byId("statsGrid"),
     syncNote:byId("syncNote"), toast:byId("toast"), toastMsg:byId("toastMsg"), toastUndo:byId("toastUndo")
@@ -501,30 +507,42 @@ import { firebaseConfig } from "./firebase-config.js";
     return wd+", "+pad(d.getDate())+"/"+pad(d.getMonth()+1);
   }
   function openSleep(list){ for(var i=0;i<list.length;i++){ if(list[i].type==="sleep" && !list[i].endTs && !list[i].example) return list[i]; } return null; }
+  function openFeed(list){ for(var i=0;i<list.length;i++){ if(list[i].type==="feed" && !list[i].endTs && !list[i].example) return list[i]; } return null; }
   function lastOf(list,type){ for(var i=0;i<list.length;i++){ if(list[i].type===type && !list[i].example) return list[i]; } return null; }
 
   // ---------- render ----------
   function displayList(){ if(store.mode!=="loading" && store.events.length===0) return EXAMPLES.slice().sort(function(a,b){return b.ts-a.ts;}); return store.events; }
   function isExampleMode(){ return store.mode!=="loading" && store.events.length===0; }
-  function render(){ var list=displayList(); renderStatus(list); renderSleepTile(list); if(activeView==="today") renderTimeline(list); else renderSummary(); renderSub(); }
+  function render(){ var list=displayList(); renderStatus(list); renderFeedTile(list); renderSleepTile(list); if(activeView==="today") renderTimeline(list); else renderSummary(); renderSub(); }
   function renderSub(){ var d=new Date(); var wd=["dom","seg","ter","qua","qui","sex","sáb"][d.getDay()]; els.babySub.textContent=wd+", "+pad(d.getDate())+"/"+pad(d.getMonth()+1); }
 
   function renderStatus(list){
+    els.status.classList.remove("sleeping","feeding");
+    var fd=openFeed(list);
+    if(fd){ els.status.classList.add("feeding"); els.statusEmoji.textContent="🍼";
+      els.statusTitle.textContent="Mamando "+fmtDur(Date.now()-fd.ts);
+      els.statusMeta.textContent="Começou às "+clock(fd.ts)+" · toque em Parou quando terminar";
+      els.statusChips.innerHTML=""; return; }
     var sl=openSleep(list);
     if(sl){ els.status.classList.add("sleeping"); els.statusEmoji.textContent="😴";
-      els.statusTitle.textContent="Dormindo "+fmtAgo(sl.ts);
+      els.statusTitle.textContent="Dormindo "+fmtDur(Date.now()-sl.ts);
       els.statusMeta.textContent="Começou às "+clock(sl.ts)+" · toque em Acordou quando despertar";
       els.statusChips.innerHTML=""; return; }
-    els.status.classList.remove("sleeping");
     if(isExampleMode()){ els.statusEmoji.textContent="👶"; els.statusTitle.textContent="Tudo pronto";
       els.statusMeta.textContent="Toque num botão quando o bebê mamar, fizer xixi/coco ou dormir.";
       els.statusChips.innerHTML=""; return; }
     var feed=lastOf(list,"feed"), pee=lastOf(list,"pee"), poop=lastOf(list,"poop");
     var lastDiaper=(pee&&poop)?(pee.ts>poop.ts?pee:poop):(pee||poop);
     els.statusEmoji.textContent=feed?"🍼":"👶";
-    els.statusTitle.textContent=feed?("Última mamada "+fmtAgo(feed.ts)):"Sem registros hoje";
-    els.statusMeta.textContent=feed?("às "+clock(feed.ts)+(feed.detail?" · "+feed.detail:"")):"Toque num botão para começar.";
+    els.statusTitle.textContent=feed?("Última mamada "+fmtAgo(feed.endTs||feed.ts)):"Sem registros hoje";
+    var dur=(feed&&feed.endTs)?" · durou "+fmtDur(feed.endTs-feed.ts):"";
+    els.statusMeta.textContent=feed?("às "+clock(feed.ts)+dur+(feed.detail?" · "+feed.detail:"")):"Toque num botão para começar.";
     els.statusChips.innerHTML=lastDiaper?('<div class="status-chip"><b>'+fmtAgo(lastDiaper.ts).replace("há ","")+'</b><span>última troca</span></div>'):"";
+  }
+  function renderFeedTile(list){
+    var f=openFeed(list);
+    if(f){ els.feedTile.classList.add("active"); els.feedEmoji.textContent="⏹️"; els.feedLabel.textContent="Parou"; els.feedHint.textContent="mamando "+fmtDur(Date.now()-f.ts); }
+    else{ els.feedTile.classList.remove("active"); els.feedEmoji.textContent="🍼"; els.feedLabel.textContent="Mamou"; els.feedHint.textContent="iniciar mamada"; }
   }
   function renderSleepTile(list){
     var sl=openSleep(list);
@@ -541,12 +559,18 @@ import { firebaseConfig } from "./firebase-config.js";
     els.viewToday.innerHTML=html;
   }
   function evRow(ev){
-    var t=TYPES[ev.type]||TYPES.note; var ongoing=ev.type==="sleep"&&!ev.endTs; var title=t.label, detail="";
+    var t=TYPES[ev.type]||TYPES.note;
+    var isSession=(ev.type==="feed"||ev.type==="sleep");
+    var ongoing=isSession && !ev.endTs;
+    var title=t.label, detail="";
     if(ev.type==="sleep"){ if(ev.endTs){ title="Sono · "+fmtDur(ev.endTs-ev.ts); detail=clock(ev.ts)+" – "+clock(ev.endTs); } else { title="Dormindo"; detail="desde "+clock(ev.ts); } }
-    if(ev.detail) detail=ev.detail+(ev.note?" · "+ev.note:""); else if(ev.note) detail=ev.note;
-    var right = (ev.type==="sleep"&&!ev.endTs)
-      ? '<div class="ev-time">'+clock(ev.ts)+'<span class="ev-ago" data-ts="'+ev.ts+'">'+fmtDur(Date.now()-ev.ts)+'</span></div>'
-      : '<div class="ev-time">'+clock(ev.ts)+'<span class="ev-ago" data-ts="'+ev.ts+'">'+fmtAgo(ev.ts)+'</span></div>';
+    else if(ev.type==="feed"){ if(ev.endTs){ title="Mamou · "+fmtDur(ev.endTs-ev.ts); detail=clock(ev.ts)+" – "+clock(ev.endTs); } else { title="Mamando"; detail="desde "+clock(ev.ts); } }
+    var extra=[]; if(ev.detail) extra.push(ev.detail); if(ev.note) extra.push(ev.note);
+    if(extra.length) detail = detail ? detail+" · "+extra.join(" · ") : extra.join(" · ");
+    var rts = ongoing ? ev.ts : (ev.endTs||ev.ts);
+    var right = ongoing
+      ? '<div class="ev-time">'+clock(ev.ts)+'<span class="ev-ago" data-ts="'+rts+'">'+fmtDur(Date.now()-rts)+'</span></div>'
+      : '<div class="ev-time">'+clock(rts)+'<span class="ev-ago" data-ts="'+rts+'">'+fmtAgo(rts)+'</span></div>';
     return '<button class="ev '+t.cls+(ev.example?" example":"")+(ongoing?" ongoing":"")+'" data-id="'+ev.id+'"'+(ev.example?" disabled":"")+'>'
       +'<span class="ev-dot">'+t.emoji+'</span><span class="ev-body"><span class="ev-title">'+esc(title)+'</span>'
       +(detail?'<span class="ev-detail">'+esc(detail)+'</span>':'')+'</span>'+right+'</button>';
@@ -557,9 +581,11 @@ import { firebaseConfig } from "./firebase-config.js";
       items=items.filter(function(e){return !e.example;});
       var feeds=count(items,"feed"), pees=count(items,"pee"), poops=count(items,"poop");
       var sleeps=items.filter(function(e){return e.type==="sleep"&&e.endTs;}); var sleepMs=0; sleeps.forEach(function(s){ sleepMs+=(s.endTs-s.ts); });
-      var lastFeed=firstOf(items,"feed"); var days=summaryPeriod==="7"?7:summaryPeriod==="30"?30:1;
+      var feedDone=items.filter(function(e){return e.type==="feed"&&e.endTs;}); var feedMs=0; feedDone.forEach(function(f){ feedMs+=(f.endTs-f.ts); });
+      var days=summaryPeriod==="7"?7:summaryPeriod==="30"?30:1;
       var html="";
-      html+=statCard("feed","🍼",feeds,"mamadas", lastFeed?("última "+fmtAgo(lastFeed.ts)):(days>1?(feeds/days).toFixed(1)+"/dia":""));
+      var feedSub = feedMs>0 ? ("⏱ "+fmtDur(feedMs)+" no total"+(feedDone.length?" · média "+fmtDur(feedMs/feedDone.length):"")) : (days>1?(feeds/days).toFixed(1)+"/dia":"");
+      html+=statCard("feed","🍼",feeds,"mamadas", feedSub);
       html+=statCard("pee","💧",pees,"xixis", days>1?(pees/days).toFixed(1)+"/dia":"");
       html+=statCard("poop","💩",poops,"cocôs", days>1?(poops/days).toFixed(1)+"/dia":"");
       html+=statCard("sleep","😴",fmtDur(sleepMs),"de sono", sleeps.length+" soneca"+(sleeps.length===1?"":"s"));
@@ -593,10 +619,16 @@ import { firebaseConfig } from "./firebase-config.js";
   // ---------- ações ----------
   document.querySelectorAll(".tile").forEach(function(btn){ btn.addEventListener("click", function(){ doAction(btn.getAttribute("data-act"), btn); }); });
   function doAction(act,btn){
+    if(act==="feed"){ toggleFeed(); return; }
     if(act==="sleep"){ toggleSleep(); return; }
-    var ev={type:act, ts:Date.now(), note:""}; if(act==="feed") ev.detail="";
+    var ev={type:act, ts:Date.now(), note:""};
     var id=store.add(ev); pulse(btn);
     showToast(TYPES[act].label+" registrado · "+clock(ev.ts), function(){ store.remove(id); });
+  }
+  function toggleFeed(){
+    var f=openFeed(store.events);
+    if(f){ store.update(f.id,{endTs:Date.now()}); showToast("Mamou · durou "+fmtDur(Date.now()-f.ts), function(){ store.update(f.id,{endTs:null}); }); }
+    else{ var ev={type:"feed", ts:Date.now(), endTs:null, detail:"", note:""}; var id=store.add(ev); pulse(els.feedTile); showToast("Começou a mamar · "+clock(ev.ts), function(){ store.remove(id); }); }
   }
   function toggleSleep(){
     var sl=openSleep(store.events);
@@ -617,8 +649,11 @@ import { firebaseConfig } from "./firebase-config.js";
     detailChips:byId("detailChips"), time:byId("editTime"), note:byId("editNote"), del:byId("editDelete"), cancel:byId("editCancel"), save:byId("editSave") };
   function openEdit(ev){
     editing=ev; editDetail=ev.detail||""; var t=TYPES[ev.type]||TYPES.note;
-    eb.title.textContent=t.emoji+" "+(ev.type==="sleep"?(ev.endTs?"Sono":"Dormindo"):t.label);
-    eb.sub.textContent=dayLabel(dayKey(ev.ts))+" às "+clock(ev.ts);
+    var isSession=(ev.type==="feed"||ev.type==="sleep");
+    var head = ev.type==="sleep"?(ev.endTs?"Sono":"Dormindo") : ev.type==="feed"?(ev.endTs?"Mamou":"Mamando") : t.label;
+    eb.title.textContent=t.emoji+" "+head;
+    var durTxt=(isSession&&ev.endTs)?" · durou "+fmtDur(ev.endTs-ev.ts):"";
+    eb.sub.textContent=dayLabel(dayKey(ev.ts))+" às "+clock(ev.ts)+durTxt;
     eb.time.value=clock(ev.ts); eb.note.value=ev.note||"";
     if(ev.type==="feed"){ eb.detailField.hidden=false;
       eb.detailChips.innerHTML=FEED_DETAILS.map(function(d){ return '<button class="chip" data-d="'+d+'" aria-pressed="'+(d===editDetail)+'">'+d+'</button>'; }).join("");
@@ -633,7 +668,8 @@ import { firebaseConfig } from "./firebase-config.js";
   eb.save.addEventListener("click", function(){
     if(!editing) return; var patch={ note:eb.note.value.trim() };
     var parts=eb.time.value.split(":");
-    if(parts.length===2){ var d=new Date(editing.ts); d.setHours(+parts[0],+parts[1],0,0); patch.ts=d.getTime(); patch.day=dayKey(patch.ts); }
+    if(parts.length===2){ var d=new Date(editing.ts); d.setHours(+parts[0],+parts[1],0,0); patch.ts=d.getTime(); patch.day=dayKey(patch.ts);
+      if(editing.endTs && patch.ts>editing.endTs){ delete patch.ts; delete patch.day; showToast("Início não pode ser depois do fim.", null); } }
     if(editing.type==="feed") patch.detail=editDetail;
     store.update(editing.id,patch); eb.back.hidden=true; editing=null;
   });
