@@ -340,6 +340,31 @@
     .rep-sec h4,.rep-table th,.rep-table td,.rep-list li,.rep-foot,.rep-kv{border-color:#bbb!important}
   }
 
+  /* Boas-vindas */
+  .welcome{position:fixed; inset:0; z-index:80; overflow-y:auto;
+    background:linear-gradient(180deg, var(--brand-bg) 0%, var(--bg) 55%);
+    padding:calc(28px + env(safe-area-inset-top,0px)) 18px calc(28px + env(safe-area-inset-bottom,0px)); display:flex; justify-content:center; align-items:flex-start}
+  .welcome-card{background:var(--surface); border:1px solid var(--line); border-radius:24px; box-shadow:var(--shadow);
+    max-width:440px; width:100%; padding:26px 22px; margin:auto}
+  .welcome-badge{width:72px; height:72px; border-radius:22px; background:var(--brand-bg); display:grid; place-items:center;
+    font-size:38px; margin:0 auto 14px; box-shadow:inset 0 0 0 1px var(--line)}
+  .welcome-title{font-family:var(--font-d); font-weight:700; font-size:26px; text-align:center; margin:0 0 8px; letter-spacing:-.01em}
+  .welcome-sub{text-align:center; color:var(--ink-soft); font-size:14.5px; line-height:1.5; margin:0 0 20px}
+  .welcome-sub b{color:var(--ink)}
+  .welcome-field{margin-bottom:14px}
+  .welcome-field label{display:block; font-family:var(--font-d); font-weight:700; font-size:13.5px; margin-bottom:6px}
+  .welcome-field label span{font-family:var(--font-b); font-weight:400; color:var(--ink-soft); font-size:12px}
+  .welcome-field input{width:100%; border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+    border-radius:12px; padding:13px; font-family:var(--font-b); font-size:16px}
+  .welcome-field input:focus{outline:2px solid var(--brand); border-color:var(--brand)}
+  .welcome-list{list-style:none; margin:18px 0 22px; padding:0; display:flex; flex-direction:column; gap:12px}
+  .welcome-list li{display:flex; align-items:center; gap:12px; font-size:14px; color:var(--ink)}
+  .welcome-list li span{font-size:20px; width:30px; text-align:center; flex:none}
+  .welcome-btn{width:100%; border:0; border-radius:14px; padding:15px; cursor:pointer;
+    background:var(--brand); color:#fff; font-family:var(--font-d); font-weight:700; font-size:17px}
+  .welcome-btn:active{transform:scale(.99)}
+  .welcome-foot{text-align:center; color:var(--ink-soft); font-size:11.5px; margin:12px 0 0; line-height:1.5}
+
   .sync-note{font-size:12px; color:var(--ink-soft); text-align:center; margin:16px 4px 0; line-height:1.5}
   .offline-badge{font-size:11px; color:var(--ink-soft); border:1px solid var(--line);
     background:var(--surface-2); border-radius:999px; padding:3px 9px; font-weight:700}
@@ -556,6 +581,32 @@
     </div>
   </div>
   <div class="report-sheet" id="reportContent"></div>
+</div>
+
+<div class="welcome" id="welcome" hidden>
+  <div class="welcome-card">
+    <div class="welcome-badge">🍼</div>
+    <h1 class="welcome-title">Bem-vindo(a)!</h1>
+    <p class="welcome-sub">O diário do seu bebê. Anote <b>mamadas, sono e trocas</b> com um toque — sem papel, sem esquecer, e sincronizado com quem cuida junto.</p>
+
+    <div class="welcome-field">
+      <label for="wName">Como vamos chamar o bebê?</label>
+      <input type="text" id="wName" maxlength="28" placeholder="ex: Bento" autocomplete="off">
+    </div>
+    <div class="welcome-field">
+      <label for="wBirth">Data de nascimento <span>(opcional — libera a janela de sono por idade)</span></label>
+      <input type="date" id="wBirth">
+    </div>
+
+    <ul class="welcome-list">
+      <li><span>👆</span> Um toque registra o horário sozinho</li>
+      <li><span>👨‍👩‍👧</span> Você e quem cuida veem o mesmo diário (botão 👥)</li>
+      <li><span>📋</span> Resumo pronto pra levar no pediatra</li>
+    </ul>
+
+    <button class="welcome-btn" id="welcomeStart">Começar</button>
+    <p class="welcome-foot">Os registros ficam no diário deste link. Você pode ajustar tudo depois.</p>
+  </div>
 </div>
 
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="toastUndo">Desfazer</button></div>
@@ -1287,8 +1338,30 @@ import { firebaseConfig } from "./firebase-config.js";
       sp.textContent=(row&&row.classList.contains("ongoing"))?fmtDur(Date.now()-ts):fmtAgo(ts); });
   }, 30000);
 
+  // ---------- boas-vindas (1º acesso) ----------
+  function maybeWelcome(){
+    var seen=false; try{ seen=!!localStorage.getItem("bebe.onboarded"); }catch(e){}
+    if(seen) return;
+    var wn=byId("wName");
+    if(els.babyName.value && els.babyName.value!=="Meu bebê") wn.value=els.babyName.value;
+    if(settings.birth) byId("wBirth").value=settings.birth;
+    byId("welcome").hidden=false;
+    setTimeout(function(){ try{ wn.focus({preventScroll:true}); }catch(e){} }, 200);
+  }
+  byId("welcomeStart").addEventListener("click", function(){
+    var n=byId("wName").value.trim(), b=byId("wBirth").value;
+    if(n){ els.babyName.value=n;
+      if(store.mode==="sync"){ setDoc(doc(store.db,"families/"+FID+"/meta/settings"), {name:n}, {merge:true}).catch(function(){}); }
+      else { try{ localStorage.setItem("bebe.name", n); }catch(e){} }
+    }
+    if(b) saveBirth(b);
+    try{ localStorage.setItem("bebe.onboarded","1"); }catch(e){}
+    byId("welcome").hidden=true; render();
+  });
+
   render();
   boot();
+  maybeWelcome();
 
   // ---------- service worker ----------
   if("serviceWorker" in navigator){ window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(e){ console.warn("SW",e); }); }); }
