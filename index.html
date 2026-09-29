@@ -86,7 +86,9 @@
     letter-spacing:-.01em; cursor:text; width:100%;
   }
   .baby-name:focus{outline:none}
-  .baby-sub{font-size:12.5px; color:var(--ink-soft); letter-spacing:.02em}
+  .baby-sub{font-size:12.5px; color:var(--ink-soft); letter-spacing:.02em; background:none; border:0; padding:0;
+    text-align:left; cursor:pointer; font-family:var(--font-b)}
+  .baby-sub:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
   .icon-btn{
     width:42px; height:42px; flex:none; border-radius:14px;
     border:1px solid var(--line); background:var(--surface); color:var(--ink);
@@ -249,6 +251,44 @@
   .banner button{margin-left:auto; flex:none; border:0; border-radius:10px; padding:8px 12px;
     background:var(--brand); color:#fff; font-family:var(--font-d); font-weight:700; cursor:pointer; font-size:13px}
 
+  /* Predictions */
+  .predict{display:flex; flex-direction:column; gap:1px; margin-top:12px; background:var(--line);
+    border-radius:16px; overflow:hidden; border:1px solid var(--line)}
+  .predict-row{display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:0; cursor:pointer;
+    background:var(--surface); padding:12px 14px; color:var(--ink); font-family:var(--font-b)}
+  .predict-row:focus-visible{outline:3px solid var(--brand); outline-offset:-3px}
+  .predict-ic{font-size:22px; width:30px; text-align:center; flex:none}
+  .predict-main{flex:1; min-width:0; display:flex; flex-direction:column}
+  .predict-t{font-family:var(--font-d); font-weight:700; font-size:15px}
+  .predict-s{font-size:12.5px; color:var(--ink-soft)}
+  .predict-badge{font-family:var(--font-d); font-weight:700; font-size:11.5px; padding:4px 9px; border-radius:999px; white-space:nowrap; flex:none}
+  .predict-badge:empty{display:none}
+  .predict-badge.ok{background:var(--brand-bg); color:var(--brand-ink)}
+  .predict-badge.warnsoft{background:var(--feed-bg); color:var(--feed)}
+  .predict-badge.over{background:#F6DCD4; color:var(--danger)}
+  :root:not([data-theme="light"]) .predict-badge.over{background:#3A241E}
+  :root[data-theme="dark"] .predict-badge.over{background:#3A241E}
+
+  /* Insights */
+  .insights{margin-top:16px; display:flex; flex-direction:column; gap:14px}
+  .chart{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px 14px 10px; box-shadow:var(--shadow)}
+  .chart-title{font-family:var(--font-d); font-weight:700; font-size:13.5px; color:var(--ink-soft); margin-bottom:10px}
+  .bars{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; align-items:end; height:112px}
+  .bar-col{display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px}
+  .bar-val{font-size:10.5px; color:var(--ink-soft); font-variant-numeric:tabular-nums; height:12px; line-height:12px}
+  .bar-track{width:100%; flex:1; display:flex; align-items:flex-end; background:var(--surface-2); border-radius:6px; overflow:hidden}
+  .bar-fill{width:100%; border-radius:6px 6px 0 0; min-height:2px; transition:height .35s ease}
+  .bar-fill.sleep{background:var(--sleep)} .bar-fill.feed{background:var(--feed)}
+  .bar-lbl{font-size:10.5px; color:var(--ink-soft); font-family:var(--font-d); font-weight:700}
+  @media (prefers-reduced-motion: reduce){ .bar-fill{transition:none} }
+
+  /* Noise */
+  .icon-btn.playing{background:var(--brand); color:#fff; border-color:var(--brand); animation:pulseSoft 1.7s ease-in-out infinite}
+  @keyframes pulseSoft{0%,100%{box-shadow:0 0 0 0 rgba(94,155,139,0)}50%{box-shadow:0 0 0 5px rgba(94,155,139,.20)}}
+  @media (prefers-reduced-motion: reduce){ .icon-btn.playing{animation:none} }
+  .noise-status{background:var(--brand-bg); color:var(--brand-ink); border-radius:12px; padding:10px 12px;
+    font-size:13px; font-weight:700; font-family:var(--font-d); margin-bottom:12px; text-align:center}
+
   .sync-note{font-size:12px; color:var(--ink-soft); text-align:center; margin:16px 4px 0; line-height:1.5}
   .offline-badge{font-size:11px; color:var(--ink-soft); border:1px solid var(--line);
     background:var(--surface-2); border-radius:999px; padding:3px 9px; font-weight:700}
@@ -259,8 +299,9 @@
   <header>
     <div class="baby">
       <input class="baby-name" id="babyName" value="Meu bebê" aria-label="Nome do bebê" maxlength="28" spellcheck="false">
-      <span class="baby-sub" id="babySub">carregando…</span>
+      <button class="baby-sub" id="babySub" title="Definir data de nascimento">carregando…</button>
     </div>
+    <button class="icon-btn" id="soundBtn" aria-label="Ruído branco" title="Ruído branco pra dormir">🔊</button>
     <button class="icon-btn" id="shareBtn" aria-label="Convidar" title="Convidar a mãe/pai">👥</button>
     <button class="icon-btn" id="themeBtn" aria-label="Alternar tema" title="Tema claro/escuro">◐</button>
   </header>
@@ -281,6 +322,18 @@
       <div class="status-meta" id="statusMeta">Toque num botão quando o bebê fizer algo.</div>
     </div>
     <div class="status-chips" id="statusChips"></div>
+  </section>
+
+  <section class="predict" id="predict" hidden aria-label="Próximos">
+    <button class="predict-row" id="predNap">
+      <span class="predict-ic">😴</span>
+      <span class="predict-main"><span class="predict-t" id="predNapT">Próxima soneca</span><span class="predict-s" id="predNapS"></span></span>
+      <span class="predict-badge" id="predNapBadge"></span>
+    </button>
+    <button class="predict-row" id="predFeed">
+      <span class="predict-ic">🍼</span>
+      <span class="predict-main"><span class="predict-t" id="predFeedT">Próxima mamada</span><span class="predict-s" id="predFeedS"></span></span>
+    </button>
   </section>
 
   <div class="tiles">
@@ -319,6 +372,7 @@
       <button data-p="30" aria-selected="false">30 dias</button>
     </div>
     <div class="stats" id="statsGrid"></div>
+    <div class="insights" id="insights"></div>
   </div>
 
   <p class="sync-note" id="syncNote"></p>
@@ -363,6 +417,52 @@
   </div>
 </div>
 
+<div class="backdrop" id="setBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <h3 id="setTitle">⚙️ Configurações</h3>
+    <p class="st-sub">A data de nascimento libera a <b>janela de sono</b> por idade (quanto tempo o bebê aguenta acordado).</p>
+    <div class="field">
+      <label for="setBirth">Data de nascimento do bebê</label>
+      <input type="date" id="setBirth">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn danger" id="setClear" aria-label="Limpar data" title="Limpar">🗑</button>
+      <button class="btn ghost" id="setCancel">Fechar</button>
+      <button class="btn primary" id="setSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="backdrop" id="noiseBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="noiseTitle">
+    <h3 id="noiseTitle">🔊 Ruído branco</h3>
+    <p class="st-sub">Ajuda o bebê a relaxar e dormir. Toca enquanto o app estiver aberto.</p>
+    <div class="field">
+      <label>Som</label>
+      <div class="chips" id="noiseTypes">
+        <button class="chip" data-n="white" aria-pressed="true">Branco</button>
+        <button class="chip" data-n="pink" aria-pressed="false">Rosa</button>
+        <button class="chip" data-n="brown" aria-pressed="false">Marrom (grave)</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Desligar depois de</label>
+      <div class="chips" id="noiseTimers">
+        <button class="chip" data-m="0" aria-pressed="true">Sem limite</button>
+        <button class="chip" data-m="15" aria-pressed="false">15 min</button>
+        <button class="chip" data-m="30" aria-pressed="false">30 min</button>
+        <button class="chip" data-m="45" aria-pressed="false">45 min</button>
+        <button class="chip" data-m="60" aria-pressed="false">60 min</button>
+      </div>
+    </div>
+    <div class="noise-status" id="noiseStatus" hidden></div>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="noiseClose">Fechar</button>
+      <button class="btn primary" id="noiseToggle">▶︎ Tocar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="toastUndo">Desfazer</button></div>
 
 <script type="module">
@@ -392,6 +492,37 @@ import { firebaseConfig } from "./firebase-config.js";
     {id:"ex3",type:"sleep",ts:atToday(10,0),endTs:atToday(11,30),note:"",example:true},
     {id:"ex4",type:"poop",ts:atToday(11,45),note:"",example:true}
   ];
+
+  // ---------- configurações (nascimento) ----------
+  var settings = { birth:null };
+  function ageDays(birth){ if(!birth) return null; var b=new Date(birth+"T00:00:00"); var d=Math.floor((Date.now()-b.getTime())/86400000); return d<0?0:d; }
+  function ageLabel(birth){
+    var d=ageDays(birth); if(d==null) return "";
+    if(d===0) return "recém-nascido";
+    if(d<14) return d+(d===1?" dia":" dias");
+    if(d<61){ var w=Math.floor(d/7); return w+(w===1?" semana":" semanas"); }
+    var mo=Math.floor(d/30.44);
+    if(mo<24) return mo+(mo===1?" mês":" meses");
+    var y=Math.floor(mo/12), rm=mo%12; return y+(y===1?" ano":" anos")+(rm?" e "+rm+"m":"");
+  }
+  // janela de sono (tempo acordado ideal, em minutos) por idade — referência pediátrica aproximada
+  function wakeWindow(days){
+    if(days<28) return [40,60];
+    var w=days/7;
+    if(w<8) return [60,90];
+    if(w<13) return [75,105];
+    if(w<17) return [90,120];
+    var mo=days/30.44;
+    if(mo<5) return [105,135];
+    if(mo<6) return [120,150];
+    if(mo<7) return [135,165];
+    if(mo<9) return [150,180];
+    if(mo<12) return [165,210];
+    if(mo<15) return [180,240];
+    if(mo<18) return [210,270];
+    return [240,300];
+  }
+  function feedDefaultInterval(days){ var mo=days/30.44; if(mo<1) return 2.5*3600000; if(mo<4) return 3*3600000; if(mo<6) return 3.5*3600000; return 4*3600000; }
 
   // ---------- família (id compartilhado no link) ----------
   function getFamilyId(){
@@ -459,7 +590,10 @@ import { firebaseConfig } from "./firebase-config.js";
     store.mode="sync"; store.db=db; setSyncBadge(true);
     onSnapshot(doc(db,"families/"+FID+"/meta/settings"), function(snap){
       var d = snap.exists()?snap.data():null;
-      if(d && d.name && document.activeElement!==els.babyName) els.babyName.value=d.name;
+      if(d){
+        if(d.name && document.activeElement!==els.babyName) els.babyName.value=d.name;
+        if(typeof d.birth!=="undefined"){ settings.birth=d.birth||null; render(); }
+      }
     }, function(){});
     onSnapshot(query(collection(db,evPath()), orderBy("ts","desc"), limit(300)), function(qs){
       var arr=[]; qs.forEach(function(docu){ var o=docu.data()||{}; o.id=docu.id; arr.push(o); });
@@ -471,6 +605,7 @@ import { firebaseConfig } from "./firebase-config.js";
     if(store.mode!=="loading") return;
     store.mode="local"; store.events=sortDesc(localLoad()); setSyncBadge(false);
     try{ var n=localStorage.getItem("bebe.name"); if(n) els.babyName.value=n; }catch(e){}
+    try{ settings.birth=localStorage.getItem("bebe.birth")||null; }catch(e){}
     store._emit();
   }
 
@@ -482,7 +617,9 @@ import { firebaseConfig } from "./firebase-config.js";
     statusTitle:byId("statusTitle"), statusMeta:byId("statusMeta"), statusChips:byId("statusChips"),
     feedTile:byId("feedTile"), feedEmoji:byId("feedEmoji"), feedLabel:byId("feedLabel"), feedHint:byId("feedHint"),
     sleepTile:byId("sleepTile"), sleepEmoji:byId("sleepEmoji"), sleepLabel:byId("sleepLabel"), sleepHint:byId("sleepHint"),
-    viewToday:byId("viewToday"), viewSummary:byId("viewSummary"), statsGrid:byId("statsGrid"),
+    viewToday:byId("viewToday"), viewSummary:byId("viewSummary"), statsGrid:byId("statsGrid"), insights:byId("insights"),
+    predict:byId("predict"), predNapT:byId("predNapT"), predNapS:byId("predNapS"), predNapBadge:byId("predNapBadge"),
+    predFeedT:byId("predFeedT"), predFeedS:byId("predFeedS"),
     syncNote:byId("syncNote"), toast:byId("toast"), toastMsg:byId("toastMsg"), toastUndo:byId("toastUndo")
   };
   var activeView="today", summaryPeriod="today";
@@ -513,8 +650,55 @@ import { firebaseConfig } from "./firebase-config.js";
   // ---------- render ----------
   function displayList(){ if(store.mode!=="loading" && store.events.length===0) return EXAMPLES.slice().sort(function(a,b){return b.ts-a.ts;}); return store.events; }
   function isExampleMode(){ return store.mode!=="loading" && store.events.length===0; }
-  function render(){ var list=displayList(); renderStatus(list); renderFeedTile(list); renderSleepTile(list); if(activeView==="today") renderTimeline(list); else renderSummary(); renderSub(); }
-  function renderSub(){ var d=new Date(); var wd=["dom","seg","ter","qua","qui","sex","sáb"][d.getDay()]; els.babySub.textContent=wd+", "+pad(d.getDate())+"/"+pad(d.getMonth()+1); }
+  function render(){ var list=displayList(); renderStatus(list); renderPredictions(list); renderFeedTile(list); renderSleepTile(list); if(activeView==="today") renderTimeline(list); else renderSummary(); renderSub(); }
+  function renderSub(){ var d=new Date(); var wd=["dom","seg","ter","qua","qui","sex","sáb"][d.getDay()]; var base=wd+", "+pad(d.getDate())+"/"+pad(d.getMonth()+1);
+    els.babySub.textContent = settings.birth ? base+" · "+ageLabel(settings.birth) : base+" · definir idade →"; }
+
+  function renderPredictions(list){
+    var show = store.mode!=="loading" && !isExampleMode();
+    els.predict.hidden = !show;
+    if(!show) return;
+    var sl=openSleep(list), fd=openFeed(list);
+    // --- próxima soneca (janela de sono) ---
+    if(sl){
+      els.predNapT.textContent="Dormindo agora";
+      els.predNapS.textContent="começou às "+clock(sl.ts)+" · há "+fmtDur(Date.now()-sl.ts);
+      els.predNapBadge.textContent=""; els.predNapBadge.className="predict-badge";
+    } else if(!settings.birth){
+      els.predNapT.textContent="Próxima soneca";
+      els.predNapS.textContent="defina o nascimento pra calcular a janela";
+      els.predNapBadge.textContent="definir"; els.predNapBadge.className="predict-badge ok";
+    } else {
+      var lastSleep=null; for(var i=0;i<list.length;i++){ if(list[i].type==="sleep" && list[i].endTs && !list[i].example){ lastSleep=list[i]; break; } }
+      if(!lastSleep){
+        els.predNapT.textContent="Próxima soneca";
+        els.predNapS.textContent="registre um sono pra calcular a janela";
+        els.predNapBadge.textContent=""; els.predNapBadge.className="predict-badge";
+      } else {
+        var win=wakeWindow(ageDays(settings.birth));
+        var awakeMs=Date.now()-lastSleep.endTs, awakeMin=awakeMs/60000;
+        var mid=lastSleep.endTs + (win[0]+win[1])/2*60000;
+        els.predNapT.textContent="Próxima soneca ~"+clock(mid);
+        els.predNapS.textContent="acordado há "+fmtDur(awakeMs)+" · janela "+win[0]+"–"+win[1]+" min";
+        if(awakeMin<win[0]){ els.predNapBadge.textContent="tranquilo"; els.predNapBadge.className="predict-badge ok"; }
+        else if(awakeMin<=win[1]){ els.predNapBadge.textContent="na janela"; els.predNapBadge.className="predict-badge warnsoft"; }
+        else { els.predNapBadge.textContent="passou"; els.predNapBadge.className="predict-badge over"; }
+      }
+    }
+    // --- próxima mamada ---
+    if(fd){ els.predFeedT.textContent="Mamando agora"; els.predFeedS.textContent="começou às "+clock(fd.ts)+" · há "+fmtDur(Date.now()-fd.ts); return; }
+    var feeds=[]; for(var j=0;j<list.length && feeds.length<6;j++){ if(list[j].type==="feed" && !list[j].example) feeds.push(list[j]); }
+    if(!feeds.length){ els.predFeedT.textContent="Próxima mamada"; els.predFeedS.textContent="registre uma mamada pra prever"; return; }
+    var last=feeds[0], interval;
+    var gaps=[]; for(var k=0;k<feeds.length-1;k++){ var g=feeds[k].ts-feeds[k+1].ts; if(g>0 && g<=6*3600000) gaps.push(g); } // ignora intervalos noturnos
+    if(gaps.length){ var sum=0; gaps.forEach(function(g){ sum+=g; }); interval=sum/gaps.length; }
+    else interval = settings.birth ? feedDefaultInterval(ageDays(settings.birth)) : 3*3600000;
+    if(interval<20*60000) interval=20*60000; // sanidade
+    var next=last.ts+interval;
+    els.predFeedT.textContent="Próxima mamada ~"+clock(next);
+    var when = next>Date.now() ? "em "+fmtDur(next-Date.now()) : "sugerida há "+fmtDur(Date.now()-next);
+    els.predFeedS.textContent=when+" · a cada ~"+fmtDur(interval);
+  }
 
   function renderStatus(list){
     els.status.classList.remove("sleeping","feeding");
@@ -591,6 +775,32 @@ import { firebaseConfig } from "./firebase-config.js";
       html+=statCard("sleep","😴",fmtDur(sleepMs),"de sono", sleeps.length+" soneca"+(sleeps.length===1?"":"s"));
       els.statsGrid.innerHTML=html;
     });
+    renderInsights();
+  }
+  function renderInsights(){
+    var days=[]; for(var i=6;i>=0;i--){ var d=new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0); days.push(d); }
+    fetchRange(days[0].getTime(), Date.now()).then(function(items){
+      items=items.filter(function(e){return !e.example;});
+      var sleepH=[0,0,0,0,0,0,0], feedN=[0,0,0,0,0,0,0];
+      items.forEach(function(e){ var idx=dayIndex(days,e.ts); if(idx<0) return;
+        if(e.type==="sleep" && e.endTs) sleepH[idx]+=(e.endTs-e.ts)/3600000;
+        if(e.type==="feed") feedN[idx]++; });
+      els.insights.innerHTML =
+        barChart("😴 Sono por dia (horas)", days, sleepH, "sleep", function(v){return v>=0.05?(Math.round(v*10)/10).toString().replace(".",","):"";}) +
+        barChart("🍼 Mamadas por dia", days, feedN, "feed", function(v){return v>0?String(v):"";});
+    });
+  }
+  function dayIndex(days,ts){ for(var i=0;i<days.length;i++){ var s=days[i].getTime(); if(ts>=s && ts<s+86400000) return i; } return -1; }
+  function barChart(title, days, vals, cls, fmt){
+    var max=Math.max.apply(null, vals.concat([0.0001]));
+    var WD=["D","S","T","Q","Q","S","S"];
+    var bars=days.map(function(d,i){
+      var h=Math.round(vals[i]/max*100);
+      return '<div class="bar-col"><span class="bar-val">'+fmt(vals[i])+'</span>'
+        +'<div class="bar-track"><div class="bar-fill '+cls+'" style="height:'+h+'%"></div></div>'
+        +'<span class="bar-lbl">'+WD[d.getDay()]+'</span></div>';
+    }).join("");
+    return '<div class="chart"><div class="chart-title">'+title+'</div><div class="bars">'+bars+'</div></div>';
   }
   function statCard(cls,emoji,n,k,sub){ return '<div class="stat '+cls+'"><div class="n">'+esc(n)+'</div><div class="k">'+emoji+" "+k+'</div>'+(sub?'<div class="sub">'+esc(sub)+'</div>':'')+'</div>'; }
   function count(items,type){ var c=0; items.forEach(function(e){ if(e.type===type) c++; }); return c; }
@@ -685,7 +895,74 @@ import { firebaseConfig } from "./firebase-config.js";
     showToast("Anotado · "+clock(ev.ts), function(){ store.remove(id); });
   });
   nb.cancel.addEventListener("click", function(){ nb.back.hidden=true; });
-  [eb.back,nb.back].forEach(function(b){ b.addEventListener("click", function(e){ if(e.target===b){ b.hidden=true; editing=null; } }); });
+
+  // ---------- configurações (nascimento) ----------
+  var sb={ back:byId("setBackdrop"), birth:byId("setBirth"), save:byId("setSave"), cancel:byId("setCancel"), clear:byId("setClear") };
+  function openSettings(){ sb.birth.value=settings.birth||""; sb.back.hidden=false; }
+  function saveBirth(v){
+    settings.birth=v||null;
+    if(store.mode==="sync"){ setDoc(doc(store.db,"families/"+FID+"/meta/settings"), {birth:settings.birth}, {merge:true}).catch(function(){}); }
+    else { try{ if(v) localStorage.setItem("bebe.birth",v); else localStorage.removeItem("bebe.birth"); }catch(e){} }
+    render();
+  }
+  byId("babySub").addEventListener("click", openSettings);
+  byId("predNap").addEventListener("click", function(){ if(!settings.birth) openSettings(); });
+  sb.save.addEventListener("click", function(){ saveBirth(sb.birth.value||null); sb.back.hidden=true; });
+  sb.clear.addEventListener("click", function(){ saveBirth(null); sb.birth.value=""; sb.back.hidden=true; });
+  sb.cancel.addEventListener("click", function(){ sb.back.hidden=true; });
+
+  // ---------- ruído branco ----------
+  var noise={ ctx:null, src:null, gain:null, playing:false, type:"white", timerMin:0, timeout:null, endAt:0 };
+  function noiseBuffer(ctx,type){
+    var len=Math.floor(ctx.sampleRate*2), buf=ctx.createBuffer(1,len,ctx.sampleRate), out=buf.getChannelData(0), i;
+    if(type==="white"){ for(i=0;i<len;i++) out[i]=Math.random()*2-1; }
+    else if(type==="pink"){ var b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+      for(i=0;i<len;i++){ var wp=Math.random()*2-1;
+        b0=0.99886*b0+wp*0.0555179; b1=0.99332*b1+wp*0.0750759; b2=0.96900*b2+wp*0.1538520;
+        b3=0.86650*b3+wp*0.3104856; b4=0.55000*b4+wp*0.5329522; b5=-0.7616*b5-wp*0.0168980;
+        out[i]=(b0+b1+b2+b3+b4+b5+b6+wp*0.5362)*0.11; b6=wp*0.115926; } }
+    else { var last=0; for(i=0;i<len;i++){ var wb=Math.random()*2-1; last=(last+0.02*wb)/1.02; out[i]=last*3.2; } }
+    return buf;
+  }
+  function noiseStart(){
+    try{
+      if(!noise.ctx) noise.ctx=new (window.AudioContext||window.webkitAudioContext)();
+      if(noise.ctx.state==="suspended") noise.ctx.resume();
+      noiseStop(true);
+      var src=noise.ctx.createBufferSource(); src.buffer=noiseBuffer(noise.ctx,noise.type); src.loop=true;
+      var gain=noise.ctx.createGain(); gain.gain.value=0.0001;
+      src.connect(gain); gain.connect(noise.ctx.destination); src.start();
+      gain.gain.exponentialRampToValueAtTime(0.35, noise.ctx.currentTime+0.6);
+      noise.src=src; noise.gain=gain; noise.playing=true;
+      if(noise.timeout){ clearTimeout(noise.timeout); noise.timeout=null; }
+      if(noise.timerMin>0){ noise.endAt=Date.now()+noise.timerMin*60000; noise.timeout=setTimeout(function(){ noiseStop(); showToast("Ruído branco desligado ⏱", null); }, noise.timerMin*60000); }
+      else noise.endAt=0;
+      updateNoiseUI();
+    }catch(e){ console.warn("noise",e); showToast("Não consegui tocar o som neste aparelho.", null); }
+  }
+  function noiseStop(silent){
+    if(noise.src){ try{ noise.src.stop(); }catch(e){} }
+    noise.src=null; noise.gain=null; noise.playing=false;
+    if(noise.timeout){ clearTimeout(noise.timeout); noise.timeout=null; } noise.endAt=0;
+    if(!silent) updateNoiseUI();
+  }
+  function updateNoiseUI(){
+    var btn=byId("noiseToggle"), hdr=byId("soundBtn"), st=byId("noiseStatus");
+    if(noise.playing){ btn.textContent="⏹ Parar"; hdr.classList.add("playing"); st.hidden=false;
+      st.textContent = noise.endAt ? ("Tocando · desliga em "+fmtDur(Math.max(0,noise.endAt-Date.now()))) : "Tocando…"; }
+    else { btn.textContent="▶︎ Tocar"; hdr.classList.remove("playing"); st.hidden=true; }
+  }
+  byId("soundBtn").addEventListener("click", function(){ byId("noiseBackdrop").hidden=false; updateNoiseUI(); });
+  byId("noiseClose").addEventListener("click", function(){ byId("noiseBackdrop").hidden=true; });
+  byId("noiseToggle").addEventListener("click", function(){ if(noise.playing) noiseStop(); else noiseStart(); });
+  byId("noiseTypes").addEventListener("click", function(e){ var c=e.target.closest(".chip"); if(!c) return; noise.type=c.getAttribute("data-n");
+    byId("noiseTypes").querySelectorAll(".chip").forEach(function(x){ x.setAttribute("aria-pressed", x===c); }); if(noise.playing) noiseStart(); });
+  byId("noiseTimers").addEventListener("click", function(e){ var c=e.target.closest(".chip"); if(!c) return; noise.timerMin=+c.getAttribute("data-m");
+    byId("noiseTimers").querySelectorAll(".chip").forEach(function(x){ x.setAttribute("aria-pressed", x===c); });
+    if(noise.playing){ if(noise.timeout){ clearTimeout(noise.timeout); noise.timeout=null; }
+      if(noise.timerMin>0){ noise.endAt=Date.now()+noise.timerMin*60000; noise.timeout=setTimeout(function(){ noiseStop(); showToast("Ruído branco desligado ⏱", null); }, noise.timerMin*60000); } else noise.endAt=0; updateNoiseUI(); } });
+
+  [eb.back,nb.back,sb.back,byId("noiseBackdrop")].forEach(function(b){ b.addEventListener("click", function(e){ if(e.target===b){ b.hidden=true; editing=null; } }); });
 
   // ---------- toast ----------
   var toastTimer=null, undoFn=null;
@@ -742,7 +1019,8 @@ import { firebaseConfig } from "./firebase-config.js";
 
   // ---------- ticker + start ----------
   store.onChange(function(){ render(); });
-  setInterval(function(){ var list=displayList(); renderStatus(list); renderSleepTile(list);
+  setInterval(function(){ var list=displayList(); renderStatus(list); renderPredictions(list); renderFeedTile(list); renderSleepTile(list);
+    if(noise.playing) updateNoiseUI();
     document.querySelectorAll(".ev-ago").forEach(function(sp){ var ts=+sp.getAttribute("data-ts"); if(!ts) return; var row=sp.closest(".ev");
       sp.textContent=(row&&row.classList.contains("ongoing"))?fmtDur(Date.now()-ts):fmtAgo(ts); });
   }, 30000);

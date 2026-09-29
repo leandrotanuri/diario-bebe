@@ -90,13 +90,20 @@ No Console → **Authentication** → **Settings** → **Authorized domains** �
 ## Como usar
 
 - Abra o app → toque em **Mamou / Xixi / Coco / Sono**. O horário registra sozinho.
-- **Sono** é toggle: "Dormiu" → "Acordou" (calcula a duração).
+- **Mamou** e **Sono** são cronômetros: 1º toque inicia, 2º toque para e grava a **duração**.
 - Toque em qualquer registro pra **corrigir horário, detalhar ou apagar**.
 - **✎ Anotar** pro que é eventual (remédio, banho, febre…).
-- Aba **Resumo** = contagens por período (hoje / ontem / 7 / 30 dias).
-- Botão **👥 (topo)** = copia/compartilha o link da família pra mãe/pai abrir no celular dele.
+- **Data de nascimento** (toque na idade no topo): libera a **janela de sono** por idade.
+- Card **Próximos**: mostra a **próxima soneca** (janela de sono, estilo Napper) e a
+  **próxima mamada** (intervalo médio, ignorando a madrugada), ao vivo.
+- Aba **Resumo** = contagens por período + **gráfico dos últimos 7 dias** (sono e mamadas/dia).
+- Botão **🔊** = **ruído branco** (branco / rosa / marrom) com timer pra desligar sozinho.
+- Botão **👥** = copia/compartilha o link da família pra mãe/pai abrir no celular dele.
 - Botão **📲 Instalar** = adiciona à tela inicial (Android/Chrome; no iPhone use
   Safari → Compartilhar → "Adicionar à Tela de Início").
+
+> ⚠️ A janela de sono é uma **referência** baseada na idade — cada bebê é único.
+> Não substitui orientação do pediatra.
 
 ## Testar local (opcional, antes de subir)
 
