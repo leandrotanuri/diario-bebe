@@ -209,6 +209,7 @@
     background:var(--surface); width:100%; max-width:560px;
     border-radius:24px 24px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));
     box-shadow:0 -8px 40px rgba(0,0,0,.2); animation:rise .22s ease;
+    max-height:90vh; overflow-y:auto;
   }
   @keyframes rise{from{transform:translateY(20px)}to{transform:translateY(0)}}
   @media (prefers-reduced-motion: reduce){ .sheet{animation:none} }
@@ -339,6 +340,17 @@
     .rep-meta,.rep-kv .k,.rep-table th,.rep-list li time,.rep-foot,.rep-empty{color:#555}
     .rep-sec h4,.rep-table th,.rep-table td,.rep-list li,.rep-foot,.rep-kv{border-color:#bbb!important}
   }
+
+  /* Lembretes */
+  .rem-block{border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px; background:var(--surface-2)}
+  .rem-head{font-family:var(--font-d); font-weight:700; font-size:14px; margin-bottom:8px}
+  .rem-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 0; font-size:14.5px; cursor:pointer}
+  .rem-row b{font-weight:700}
+  .rem-row input[type="checkbox"]{width:20px; height:20px; accent-color:var(--brand); flex:none; cursor:pointer}
+  .rem-block .field{margin:2px 0 8px}
+  .rem-block select{width:100%; border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:10px; padding:10px; font-family:var(--font-b); font-size:15px}
+  .rem-note{font-size:11.5px; color:var(--ink-soft); margin:6px 0 0; line-height:1.5}
 
   /* Boas-vindas */
   .welcome{position:fixed; inset:0; z-index:80; overflow-y:auto;
@@ -505,6 +517,25 @@
       <label for="setBirth">Data de nascimento do bebê</label>
       <input type="date" id="setBirth">
     </div>
+
+    <div class="rem-block">
+      <div class="rem-head">🔔 Lembretes</div>
+      <label class="rem-row"><span>Avisar na hora da <b>mamada</b></span><input type="checkbox" id="remFeed"></label>
+      <div class="field" id="remIvWrap" hidden>
+        <label for="remIv">Intervalo entre mamadas</label>
+        <select id="remIv">
+          <option value="">Automático (pela média do bebê)</option>
+          <option value="120">A cada 2 horas</option>
+          <option value="150">A cada 2h30</option>
+          <option value="180">A cada 3 horas</option>
+          <option value="210">A cada 3h30</option>
+          <option value="240">A cada 4 horas</option>
+        </select>
+      </div>
+      <label class="rem-row"><span>Avisar na <b>janela de sono</b></span><input type="checkbox" id="remNap"></label>
+      <p class="rem-note">Funciona com o app aberto ou minimizado. Aviso com o app fechado (push) vem numa próxima etapa.</p>
+    </div>
+
     <div class="sheet-actions">
       <button class="btn danger" id="setClear" aria-label="Limpar data" title="Limpar">🗑</button>
       <button class="btn ghost" id="setCancel">Fechar</button>
@@ -1046,7 +1077,7 @@ import { firebaseConfig } from "./firebase-config.js";
 
   // ---------- configurações (nascimento) ----------
   var sb={ back:byId("setBackdrop"), birth:byId("setBirth"), save:byId("setSave"), cancel:byId("setCancel"), clear:byId("setClear") };
-  function openSettings(){ sb.birth.value=settings.birth||""; sb.back.hidden=false; }
+  function openSettings(){ sb.birth.value=settings.birth||""; fillReminderUI(); sb.back.hidden=false; }
   function saveBirth(v){
     settings.birth=v||null;
     if(store.mode==="sync"){ setDoc(doc(store.db,"families/"+FID+"/meta/settings"), {birth:settings.birth}, {merge:true}).catch(function(){}); }
@@ -1058,6 +1089,65 @@ import { firebaseConfig } from "./firebase-config.js";
   sb.save.addEventListener("click", function(){ saveBirth(sb.birth.value||null); sb.back.hidden=true; });
   sb.clear.addEventListener("click", function(){ saveBirth(null); sb.birth.value=""; sb.back.hidden=true; });
   sb.cancel.addEventListener("click", function(){ sb.back.hidden=true; });
+
+  // ---------- lembretes / notificações (nível 1: app aberto) ----------
+  var reminders={ feed:false, nap:false, feedIntervalMin:null };
+  try{ var rr=JSON.parse(localStorage.getItem("bebe.reminders")||"null"); if(rr) reminders=Object.assign(reminders,rr); }catch(e){}
+  var notifState={ feedRef:0, napRef:0 };
+  try{ var nss=JSON.parse(localStorage.getItem("bebe.notifState")||"null"); if(nss) notifState=Object.assign(notifState,nss); }catch(e){}
+  function saveReminders(){ try{ localStorage.setItem("bebe.reminders", JSON.stringify(reminders)); }catch(e){} }
+  function saveNotifState(){ try{ localStorage.setItem("bebe.notifState", JSON.stringify(notifState)); }catch(e){} }
+  function ensureNotifPermission(){
+    if(!("Notification" in window)){ showToast("Este aparelho não suporta notificações.", null); return Promise.resolve(false); }
+    if(Notification.permission==="granted") return Promise.resolve(true);
+    if(Notification.permission==="denied"){ showToast("Notificações bloqueadas — libere nas configurações do navegador.", null); return Promise.resolve(false); }
+    return Notification.requestPermission().then(function(p){ return p==="granted"; }).catch(function(){ return false; });
+  }
+  function notify(title, body, tag){
+    if(!("Notification" in window) || Notification.permission!=="granted") return;
+    try{
+      if(navigator.serviceWorker && navigator.serviceWorker.ready){
+        navigator.serviceWorker.ready.then(function(reg){ try{ reg.showNotification(title,{ body:body, tag:tag, icon:"icons/icon-192.png", badge:"icons/icon-192.png" }); }catch(e){ try{ new Notification(title,{body:body,tag:tag,icon:"icons/icon-192.png"}); }catch(e2){} } });
+      } else { new Notification(title,{ body:body, tag:tag, icon:"icons/icon-192.png" }); }
+    }catch(e){}
+  }
+  function computeFeedIntervalMs(list){
+    var feeds=[]; for(var j=0;j<list.length && feeds.length<6;j++){ if(list[j].type==="feed" && !list[j].example) feeds.push(list[j]); }
+    var gaps=[]; for(var k=0;k<feeds.length-1;k++){ var g=feeds[k].ts-feeds[k+1].ts; if(g>0 && g<=6*3600000) gaps.push(g); }
+    if(gaps.length){ var s=0; gaps.forEach(function(g){s+=g;}); return Math.max(20*60000, s/gaps.length); }
+    return settings.birth? feedDefaultInterval(ageDays(settings.birth)) : 3*3600000;
+  }
+  function checkReminders(list){
+    if(!reminders.feed && !reminders.nap) return;
+    if(!("Notification" in window) || Notification.permission!=="granted") return;
+    var name=(els.babyName.value||"o bebê").trim();
+    if(reminders.feed && !openFeed(list)){
+      var lf=lastOf(list,"feed");
+      if(lf){ var ref=lf.endTs||lf.ts; var iv=reminders.feedIntervalMin? reminders.feedIntervalMin*60000 : computeFeedIntervalMs(list);
+        if(Date.now()-ref>=iv && notifState.feedRef!==ref){ notify("🍼 Hora da mamada?", "Já faz "+fmtDur(Date.now()-ref)+" que "+name+" mamou.", "feed-reminder"); notifState.feedRef=ref; saveNotifState(); } }
+    }
+    if(reminders.nap && settings.birth && !openSleep(list) && !openFeed(list)){
+      var ls=null; for(var i=0;i<list.length;i++){ if(list[i].type==="sleep"&&list[i].endTs&&!list[i].example){ ls=list[i]; break; } }
+      if(ls){ var win=wakeWindow(ageDays(settings.birth)); var awake=Date.now()-ls.endTs;
+        if(awake>=win[1]*60000 && notifState.napRef!==ls.endTs){ notify("😴 Janela de sono", name+" está acordado há "+fmtDur(awake)+" — pode estar na hora da soneca.", "nap-reminder"); notifState.napRef=ls.endTs; saveNotifState(); } }
+    }
+  }
+  function fillReminderUI(){
+    byId("remFeed").checked=!!reminders.feed; byId("remNap").checked=!!reminders.nap;
+    byId("remIv").value=reminders.feedIntervalMin? String(reminders.feedIntervalMin):"";
+    byId("remIvWrap").hidden=!reminders.feed;
+  }
+  byId("remFeed").addEventListener("change", function(){
+    var cb=this;
+    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.feed=true; saveReminders(); byId("remIvWrap").hidden=false; notify("🔔 Lembretes ligados", "Você vai ser avisado quando estiver na hora da mamada.", "test"); } else { cb.checked=false; } }); }
+    else { reminders.feed=false; saveReminders(); byId("remIvWrap").hidden=true; }
+  });
+  byId("remNap").addEventListener("change", function(){
+    var cb=this;
+    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.nap=true; saveReminders(); if(!settings.birth) showToast("Defina o nascimento pra calcular a janela de sono.", null); else notify("🔔 Lembrete de soneca ligado", "Você vai ser avisado quando fechar a janela de sono.", "test"); } else { cb.checked=false; } }); }
+    else { reminders.nap=false; saveReminders(); }
+  });
+  byId("remIv").addEventListener("change", function(){ reminders.feedIntervalMin=this.value? +this.value : null; saveReminders(); });
 
   // ---------- ruído branco ----------
   var noise={ ctx:null, src:null, gain:null, playing:false, type:"white", timerMin:0, timeout:null, endAt:0 };
@@ -1333,6 +1423,7 @@ import { firebaseConfig } from "./firebase-config.js";
   // ---------- ticker + start ----------
   store.onChange(function(){ render(); });
   setInterval(function(){ var list=displayList(); renderStatus(list); renderPredictions(list); renderFeedTile(list); renderSleepTile(list);
+    checkReminders(list);
     if(noise.playing) updateNoiseUI();
     document.querySelectorAll(".ev-ago").forEach(function(sp){ var ts=+sp.getAttribute("data-ts"); if(!ts) return; var row=sp.closest(".ev");
       sp.textContent=(row&&row.classList.contains("ongoing"))?fmtDur(Date.now()-ts):fmtAgo(ts); });

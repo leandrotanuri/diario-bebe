@@ -1,7 +1,7 @@
 /* Service Worker — Diário do Bebê
    Cache do "app shell" para funcionar offline e ser instalável.
    Suba a versão (CACHE) sempre que mudar os arquivos, pra forçar atualização. */
-const CACHE = "bebe-v3";
+const CACHE = "bebe-v4";
 const SHELL = [
   "./",
   "./index.html",
@@ -50,5 +50,16 @@ self.addEventListener("fetch", (e) => {
       caches.open(CACHE).then((c) => c.put(e.request, copy));
       return r;
     }).catch(() => cached))
+  );
+});
+
+// Clique numa notificação (lembrete de mamada/soneca): foca o app ou abre.
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cl) => {
+      for (const c of cl) { if ("focus" in c) return c.focus(); }
+      if (self.clients.openWindow) return self.clients.openWindow("./");
+    })
   );
 });
