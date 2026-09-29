@@ -1,7 +1,7 @@
 /* Service Worker — Diário do Bebê
    Cache do "app shell" para funcionar offline e ser instalável.
    Suba a versão (CACHE) sempre que mudar os arquivos, pra forçar atualização. */
-const CACHE = "bebe-v1";
+const CACHE = "bebe-v2";
 const SHELL = [
   "./",
   "./index.html",
