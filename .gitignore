@@ -3,3 +3,8 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+node_modules/
+SECRETS.local.md
+serviceAccount.json
+server/node_modules/
+server/.env

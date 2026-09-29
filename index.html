@@ -765,6 +765,7 @@ import { firebaseConfig } from "./firebase-config.js";
   function startSync(db){
     if(store.mode==="sync") return;
     store.mode="sync"; store.db=db; setSyncBadge(true);
+    try{ if((reminders.feed||reminders.nap) && ("Notification" in window) && Notification.permission==="granted") enablePush(); }catch(e){}
     onSnapshot(doc(db,"families/"+FID+"/meta/settings"), function(snap){
       var d = snap.exists()?snap.data():null;
       if(d){
@@ -1139,15 +1140,50 @@ import { firebaseConfig } from "./firebase-config.js";
   }
   byId("remFeed").addEventListener("change", function(){
     var cb=this;
-    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.feed=true; saveReminders(); byId("remIvWrap").hidden=false; notify("🔔 Lembretes ligados", "Você vai ser avisado quando estiver na hora da mamada.", "test"); } else { cb.checked=false; } }); }
-    else { reminders.feed=false; saveReminders(); byId("remIvWrap").hidden=true; }
+    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.feed=true; saveReminders(); byId("remIvWrap").hidden=false; syncPushPrefs(); notify("🔔 Lembretes ligados", "Você vai ser avisado quando estiver na hora da mamada.", "test"); } else { cb.checked=false; } }); }
+    else { reminders.feed=false; saveReminders(); byId("remIvWrap").hidden=true; syncPushPrefs(); }
   });
   byId("remNap").addEventListener("change", function(){
     var cb=this;
-    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.nap=true; saveReminders(); if(!settings.birth) showToast("Defina o nascimento pra calcular a janela de sono.", null); else notify("🔔 Lembrete de soneca ligado", "Você vai ser avisado quando fechar a janela de sono.", "test"); } else { cb.checked=false; } }); }
-    else { reminders.nap=false; saveReminders(); }
+    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.nap=true; saveReminders(); syncPushPrefs(); if(!settings.birth) showToast("Defina o nascimento pra calcular a janela de sono.", null); else notify("🔔 Lembrete de soneca ligado", "Você vai ser avisado quando fechar a janela de sono.", "test"); } else { cb.checked=false; } }); }
+    else { reminders.nap=false; saveReminders(); syncPushPrefs(); }
   });
-  byId("remIv").addEventListener("change", function(){ reminders.feedIntervalMin=this.value? +this.value : null; saveReminders(); });
+  byId("remIv").addEventListener("change", function(){ reminders.feedIntervalMin=this.value? +this.value : null; saveReminders(); syncPushPrefs(); });
+
+  // ---------- push (nível 2: app fechado) ----------
+  var VAPID_PUBLIC = "BKguBdO2ENxkRojUG8C_tFToB-6ijzOhCD8g_Z0dZqXiIXeiJC1ORqRq2SlGolnknt8Y5okOz9bhjFepEgy8KiQ";
+  var pushSubRef=null;
+  function urlB64ToUint8(b64){ var pad="=".repeat((4-b64.length%4)%4); var s=(b64+pad).replace(/-/g,"+").replace(/_/g,"/"); var raw=atob(s); var arr=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i); return arr; }
+  function subHash(endpoint){
+    try{ return crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint)).then(function(buf){ return Array.from(new Uint8Array(buf)).slice(0,16).map(function(b){return ("0"+b.toString(16)).slice(-2);}).join(""); }); }
+    catch(e){ var h=7; for(var i=0;i<endpoint.length;i++){ h=(h*31+endpoint.charCodeAt(i))|0; } return Promise.resolve("s"+Math.abs(h)); }
+  }
+  function enablePush(){
+    if(store.mode!=="sync") return Promise.resolve(false);
+    if(!("serviceWorker" in navigator) || !("PushManager" in window)) return Promise.resolve(false);
+    return navigator.serviceWorker.ready.then(function(reg){
+      return reg.pushManager.getSubscription().then(function(existing){
+        return existing || reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToUint8(VAPID_PUBLIC) });
+      });
+    }).then(function(sub){
+      var j=sub.toJSON();
+      return subHash(j.endpoint).then(function(id){
+        pushSubRef=doc(store.db, "families/"+FID+"/pushSubs/"+id);
+        return setDoc(pushSubRef, { endpoint:j.endpoint, keys:j.keys, updatedAt:Date.now(),
+          feed:!!reminders.feed, nap:!!reminders.nap, feedIntervalMin:reminders.feedIntervalMin||null,
+          tzOffset:new Date().getTimezoneOffset() }, { merge:true }).then(function(){ return true; });
+      });
+    }).catch(function(e){ console.warn("push",e); return false; });
+  }
+  function syncPushPrefs(){
+    if(store.mode!=="sync") return;
+    if(!reminders.feed && !reminders.nap){ // desligou tudo: zera no doc pra o servidor parar
+      if(pushSubRef){ setDoc(pushSubRef, { feed:false, nap:false, updatedAt:Date.now() }, { merge:true }).catch(function(){}); }
+      return;
+    }
+    if(!pushSubRef){ enablePush(); return; }
+    setDoc(pushSubRef, { feed:!!reminders.feed, nap:!!reminders.nap, feedIntervalMin:reminders.feedIntervalMin||null, updatedAt:Date.now() }, { merge:true }).catch(function(){});
+  }
 
   // ---------- ruído branco ----------
   var noise={ ctx:null, src:null, gain:null, playing:false, type:"white", timerMin:0, timeout:null, endAt:0 };
