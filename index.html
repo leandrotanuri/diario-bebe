@@ -482,8 +482,8 @@
       <div class="chips" id="detailChips"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label for="editTime" id="editTimeLabel">Horário</label><input type="time" id="editTime"></div>
-      <div class="field" id="editEndWrap" hidden><label for="editEnd">Fim</label><input type="time" id="editEnd"></div>
+      <div class="field"><label for="editTime" id="editTimeLabel">Horário</label><input type="text" id="editTime" inputmode="numeric" maxlength="5" placeholder="hh:mm" autocomplete="off"></div>
+      <div class="field" id="editEndWrap" hidden><label for="editEnd">Fim</label><input type="text" id="editEnd" inputmode="numeric" maxlength="5" placeholder="hh:mm" autocomplete="off"></div>
     </div>
     <div class="field">
       <label for="editNote">Observação</label>
@@ -1042,6 +1042,9 @@ import { firebaseConfig } from "./firebase-config.js";
   var eb={ back:byId("editBackdrop"), title:byId("editTitle"), sub:byId("editSub"), detailField:byId("detailField"),
     detailChips:byId("detailChips"), time:byId("editTime"), timeLabel:byId("editTimeLabel"), end:byId("editEnd"), endWrap:byId("editEndWrap"),
     note:byId("editNote"), del:byId("editDelete"), cancel:byId("editCancel"), save:byId("editSave") };
+  function fmtTimeInput(el){ el.addEventListener("input", function(){ var d=el.value.replace(/\D/g,"").slice(0,4); el.value = d.length>=3 ? d.slice(0,2)+":"+d.slice(2) : d; }); }
+  fmtTimeInput(eb.time); fmtTimeInput(eb.end);
+  function parseHHMM(s){ s=(s||"").trim(); var m=s.match(/^(\d{1,2}):?(\d{0,2})$/); if(!m) return null; var h=+m[1], mm=m[2]===""?0:+m[2]; if(h>23||mm>59) return null; return {h:h,m:mm}; }
   function openEdit(ev){
     if(ev.type==="measure"){ openMeasure(ev); return; }
     editing=ev; editDetail=ev.detail||""; var t=TYPES[ev.type]||TYPES.note;
@@ -1065,10 +1068,12 @@ import { firebaseConfig } from "./firebase-config.js";
   });
   eb.save.addEventListener("click", function(){
     if(!editing) return; var patch={ note:eb.note.value.trim() };
-    var parts=eb.time.value.split(":");
-    if(parts.length===2){ var d=new Date(editing.ts); d.setHours(+parts[0],+parts[1],0,0); patch.ts=d.getTime(); patch.day=dayKey(patch.ts); }
-    if(!eb.endWrap.hidden && editing.endTs!=null){ var ep=eb.end.value.split(":");
-      if(ep.length===2){ var ed=new Date(editing.endTs); ed.setHours(+ep[0],+ep[1],0,0); patch.endTs=ed.getTime(); } }
+    var pt=parseHHMM(eb.time.value);
+    if(!pt){ showToast("Horário inválido. Use hh:mm (ex: 13:05).", null); return; }
+    var d=new Date(editing.ts); d.setHours(pt.h,pt.m,0,0); patch.ts=d.getTime(); patch.day=dayKey(patch.ts);
+    if(!eb.endWrap.hidden && editing.endTs!=null){ var pe=parseHHMM(eb.end.value);
+      if(!pe){ showToast("Fim inválido. Use hh:mm.", null); return; }
+      var ed=new Date(editing.endTs); ed.setHours(pe.h,pe.m,0,0); patch.endTs=ed.getTime(); }
     var st=(patch.ts!=null)?patch.ts:editing.ts, en=(patch.endTs!=null)?patch.endTs:editing.endTs;
     if(en!=null && st>en){ showToast("O início não pode ser depois do fim.", null); return; }
     if(editing.type==="feed") patch.detail=editDetail;
