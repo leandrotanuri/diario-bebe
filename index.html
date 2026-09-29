@@ -289,6 +289,57 @@
   .noise-status{background:var(--brand-bg); color:var(--brand-ink); border-radius:12px; padding:10px 12px;
     font-size:13px; font-weight:700; font-family:var(--font-d); margin-bottom:12px; text-align:center}
 
+  /* Mini ações + medidas */
+  .mini-actions{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
+  .mini-actions .note-btn{margin-top:0; flex:1; min-width:150px}
+  .ev.measure .ev-dot{background:var(--brand-bg)} .ev.measure .ev-title{color:var(--brand-ink)}
+  .field-row{display:flex; gap:12px}
+  .field-row .field{flex:1; min-width:0}
+
+  /* Resumo pediatra */
+  .report-cta{width:100%; margin-top:16px; border:0; border-radius:16px; padding:15px; cursor:pointer;
+    background:var(--brand); color:#fff; font-family:var(--font-d); font-weight:700; font-size:16px; box-shadow:var(--shadow)}
+  .report-cta:active{transform:scale(.99)}
+  .report-overlay{position:fixed; inset:0; z-index:70; background:var(--bg); display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px)}
+  .report-bar{display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); background:var(--surface)}
+  .report-periods{display:flex; gap:6px}
+  .report-periods button{border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); border-radius:999px;
+    padding:7px 12px; cursor:pointer; font-family:var(--font-d); font-weight:700; font-size:13px}
+  .report-periods button[aria-selected="true"]{background:var(--brand); border-color:var(--brand); color:#fff}
+  .report-custom{display:flex; gap:10px; align-items:center; font-size:12px; color:var(--ink-soft); flex-wrap:wrap}
+  .report-custom label{display:flex; gap:5px; align-items:center}
+  .report-custom input{border:1px solid var(--line); background:var(--surface-2); color:var(--ink); border-radius:8px; padding:6px 8px; font-family:var(--font-b); font-size:13px}
+  .report-actions{display:flex; gap:8px; margin-left:auto}
+  .report-actions .btn{flex:none; padding:10px 14px; font-size:14px}
+  .report-sheet{flex:1; overflow-y:auto; padding:22px 18px 60px; max-width:720px; margin:0 auto; width:100%}
+  .rep-h1{font-family:var(--font-d); font-weight:700; font-size:22px; margin:0 0 2px}
+  .rep-meta{color:var(--ink-soft); font-size:13.5px; margin-bottom:18px}
+  .rep-sec{margin-bottom:20px}
+  .rep-sec h4{font-family:var(--font-d); font-weight:700; font-size:15px; margin:0 0 8px; padding-bottom:6px; border-bottom:2px solid var(--line); display:flex; gap:8px}
+  .rep-grid{display:grid; grid-template-columns:1fr 1fr; gap:2px 20px}
+  @media (max-width:460px){ .rep-grid{grid-template-columns:1fr} }
+  .rep-kv{display:flex; justify-content:space-between; gap:10px; font-size:14px; padding:4px 0; border-bottom:1px dotted var(--line)}
+  .rep-kv .k{color:var(--ink-soft)} .rep-kv .v{font-weight:700; font-variant-numeric:tabular-nums; text-align:right}
+  .rep-table{width:100%; border-collapse:collapse; font-size:13px}
+  .rep-table th,.rep-table td{text-align:center; padding:6px 4px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums}
+  .rep-table th{color:var(--ink-soft); font-family:var(--font-d); font-size:11.5px; text-transform:uppercase; letter-spacing:.04em}
+  .rep-table td:first-child,.rep-table th:first-child{text-align:left}
+  .rep-list{list-style:none; margin:0; padding:0; font-size:13.5px}
+  .rep-list li{padding:6px 0; border-bottom:1px solid var(--line); display:flex; gap:10px}
+  .rep-list li time{color:var(--ink-soft); flex:none; font-variant-numeric:tabular-nums; min-width:92px}
+  .rep-empty{color:var(--ink-soft); font-size:13.5px; font-style:italic}
+  .rep-foot{margin-top:24px; font-size:11.5px; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:10px; line-height:1.5}
+  @media print{
+    body{background:#fff}
+    body>*{display:none!important}
+    #reportOverlay{display:flex!important; position:static; background:#fff}
+    #reportOverlay .no-print{display:none!important}
+    .report-sheet{overflow:visible; padding:0; max-width:none; color:#111}
+    .rep-meta,.rep-kv .k,.rep-table th,.rep-list li time,.rep-foot,.rep-empty{color:#555}
+    .rep-sec h4,.rep-table th,.rep-table td,.rep-list li,.rep-foot,.rep-kv{border-color:#bbb!important}
+  }
+
   .sync-note{font-size:12px; color:var(--ink-soft); text-align:center; margin:16px 4px 0; line-height:1.5}
   .offline-badge{font-size:11px; color:var(--ink-soft); border:1px solid var(--line);
     background:var(--surface-2); border-radius:999px; padding:3px 9px; font-weight:700}
@@ -355,7 +406,10 @@
     </button>
   </div>
 
-  <button class="note-btn" id="noteBtn">✎ Anotar outra coisa (remédio, banho, febre…)</button>
+  <div class="mini-actions">
+    <button class="note-btn" id="noteBtn">✎ Anotar (remédio, banho, febre…)</button>
+    <button class="note-btn" id="measureBtn">⚖️ Peso / altura / temperatura</button>
+  </div>
 
   <div class="seg" role="tablist">
     <button role="tab" id="tabToday" aria-selected="true">Linha do tempo</button>
@@ -365,6 +419,7 @@
   <div id="viewToday"></div>
 
   <div id="viewSummary" hidden>
+    <button class="report-cta" id="reportBtn">📋 Gerar resumo pro pediatra</button>
     <div class="period" id="periodBar">
       <button data-p="today" aria-selected="true">Hoje</button>
       <button data-p="yesterday" aria-selected="false">Ontem</button>
@@ -463,6 +518,46 @@
   </div>
 </div>
 
+<div class="backdrop" id="measureBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="measureTitle">
+    <h3 id="measureTitle">⚖️ Medida</h3>
+    <p class="st-sub">Preencha só o que tiver (peso é o que o pediatra mais acompanha).</p>
+    <div class="field-row">
+      <div class="field"><label for="mWeight">Peso (kg)</label><input type="text" id="mWeight" inputmode="decimal" placeholder="ex: 3,450"></div>
+      <div class="field"><label for="mHeight">Altura (cm)</label><input type="text" id="mHeight" inputmode="decimal" placeholder="ex: 52"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="mTemp">Temperatura (°C)</label><input type="text" id="mTemp" inputmode="decimal" placeholder="ex: 36,7"></div>
+      <div class="field"><label for="mDate">Data</label><input type="date" id="mDate"></div>
+    </div>
+    <div class="field"><label for="mNote">Observação</label><input type="text" id="mNote" placeholder="opcional"></div>
+    <div class="sheet-actions">
+      <button class="btn danger" id="mDelete" aria-label="Apagar" hidden>🗑</button>
+      <button class="btn ghost" id="mCancel">Cancelar</button>
+      <button class="btn primary" id="mSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="report-overlay" id="reportOverlay" hidden>
+  <div class="report-bar no-print">
+    <button class="icon-btn" id="reportClose" aria-label="Fechar">✕</button>
+    <div class="report-periods" id="reportPeriods">
+      <button data-p="1">24h</button><button data-p="3">3 dias</button>
+      <button data-p="7" aria-selected="true">7 dias</button><button data-p="14">14 dias</button>
+    </div>
+    <div class="report-custom">
+      <label>De <input type="date" id="repStart"></label>
+      <label>até <input type="date" id="repEnd"></label>
+    </div>
+    <div class="report-actions">
+      <button class="btn ghost" id="reportShare">📤 Compartilhar</button>
+      <button class="btn primary" id="reportPrint">🖨 Imprimir / PDF</button>
+    </div>
+  </div>
+  <div class="report-sheet" id="reportContent"></div>
+</div>
+
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="toastUndo">Desfazer</button></div>
 
 <script type="module">
@@ -481,7 +576,7 @@ import { firebaseConfig } from "./firebase-config.js";
   var TYPES = {
     feed:{label:"Mamou",emoji:"🍼",cls:"feed"}, pee:{label:"Xixi",emoji:"💧",cls:"pee"},
     poop:{label:"Coco",emoji:"💩",cls:"poop"}, sleep:{label:"Sono",emoji:"😴",cls:"sleep"},
-    note:{label:"Anotação",emoji:"✎",cls:"note"}
+    note:{label:"Anotação",emoji:"✎",cls:"note"}, measure:{label:"Medida",emoji:"⚖️",cls:"measure"}
   };
   var FEED_DETAILS = ["Peito esq.","Peito dir.","Ambos","Mamadeira","Fórmula"];
 
@@ -749,6 +844,7 @@ import { firebaseConfig } from "./firebase-config.js";
     var title=t.label, detail="";
     if(ev.type==="sleep"){ if(ev.endTs){ title="Sono · "+fmtDur(ev.endTs-ev.ts); detail=clock(ev.ts)+" – "+clock(ev.endTs); } else { title="Dormindo"; detail="desde "+clock(ev.ts); } }
     else if(ev.type==="feed"){ if(ev.endTs){ title="Mamou · "+fmtDur(ev.endTs-ev.ts); detail=clock(ev.ts)+" – "+clock(ev.endTs); } else { title="Mamando"; detail="desde "+clock(ev.ts); } }
+    else if(ev.type==="measure"){ title="Medida"; detail=measureText(ev); }
     var extra=[]; if(ev.detail) extra.push(ev.detail); if(ev.note) extra.push(ev.note);
     if(extra.length) detail = detail ? detail+" · "+extra.join(" · ") : extra.join(" · ");
     var rts = ongoing ? ev.ts : (ev.endTs||ev.ts);
@@ -858,6 +954,7 @@ import { firebaseConfig } from "./firebase-config.js";
   var eb={ back:byId("editBackdrop"), title:byId("editTitle"), sub:byId("editSub"), detailField:byId("detailField"),
     detailChips:byId("detailChips"), time:byId("editTime"), note:byId("editNote"), del:byId("editDelete"), cancel:byId("editCancel"), save:byId("editSave") };
   function openEdit(ev){
+    if(ev.type==="measure"){ openMeasure(ev); return; }
     editing=ev; editDetail=ev.detail||""; var t=TYPES[ev.type]||TYPES.note;
     var isSession=(ev.type==="feed"||ev.type==="sleep");
     var head = ev.type==="sleep"?(ev.endTs?"Sono":"Dormindo") : ev.type==="feed"?(ev.endTs?"Mamou":"Mamando") : t.label;
@@ -963,6 +1060,171 @@ import { firebaseConfig } from "./firebase-config.js";
       if(noise.timerMin>0){ noise.endAt=Date.now()+noise.timerMin*60000; noise.timeout=setTimeout(function(){ noiseStop(); showToast("Ruído branco desligado ⏱", null); }, noise.timerMin*60000); } else noise.endAt=0; updateNoiseUI(); } });
 
   [eb.back,nb.back,sb.back,byId("noiseBackdrop")].forEach(function(b){ b.addEventListener("click", function(e){ if(e.target===b){ b.hidden=true; editing=null; } }); });
+
+  // ---------- medidas (peso/altura/temperatura) ----------
+  function numBR(s){ if(s==null) return null; s=String(s).trim().replace(",","."); if(s==="") return null; var n=parseFloat(s); return isNaN(n)?null:n; }
+  function fmtKg(kg){ return (Math.round(kg*1000)/1000).toString().replace(".",",")+" kg"; }
+  function fmtTemp(t){ return (Math.round(t*10)/10).toString().replace(".",",")+"°C"; }
+  function measureText(ev){ var p=[]; if(ev.weight!=null) p.push(fmtKg(ev.weight)); if(ev.height!=null) p.push((Math.round(ev.height*10)/10).toString().replace(".",",")+" cm"); if(ev.temp!=null) p.push(fmtTemp(ev.temp)); return p.join(" · "); }
+  var editingMeasure=null;
+  var ms={ back:byId("measureBackdrop"), title:byId("measureTitle"), w:byId("mWeight"), h:byId("mHeight"), t:byId("mTemp"), date:byId("mDate"), note:byId("mNote"), del:byId("mDelete"), cancel:byId("mCancel"), save:byId("mSave") };
+  function openMeasure(ev){
+    editingMeasure=ev||null;
+    ms.title.textContent = ev? "⚖️ Editar medida" : "⚖️ Nova medida";
+    ms.w.value = ev&&ev.weight!=null? String(ev.weight).replace(".",",") : "";
+    ms.h.value = ev&&ev.height!=null? String(ev.height).replace(".",",") : "";
+    ms.t.value = ev&&ev.temp!=null? String(ev.temp).replace(".",",") : "";
+    ms.note.value = ev&&ev.note? ev.note : "";
+    ms.date.value = dayKey(ev? ev.ts : Date.now());
+    ms.del.hidden = !ev; ms.back.hidden=false;
+  }
+  byId("measureBtn").addEventListener("click", function(){ openMeasure(null); setTimeout(function(){ ms.w.focus(); },80); });
+  ms.cancel.addEventListener("click", function(){ ms.back.hidden=true; editingMeasure=null; });
+  ms.save.addEventListener("click", function(){
+    var w=numBR(ms.w.value), h=numBR(ms.h.value), t=numBR(ms.t.value), note=ms.note.value.trim();
+    if(w==null && h==null && t==null && !note){ ms.back.hidden=true; editingMeasure=null; return; }
+    var base = editingMeasure? new Date(editingMeasure.ts) : new Date();
+    var parts=(ms.date.value||dayKey(Date.now())).split("-");
+    if(parts.length===3) base.setFullYear(+parts[0], +parts[1]-1, +parts[2]);
+    var ts=base.getTime();
+    if(editingMeasure){ store.update(editingMeasure.id, { ts:ts, day:dayKey(ts), note:note, weight:w, height:h, temp:t }); }
+    else { store.add({ type:"measure", ts:ts, note:note, weight:w, height:h, temp:t }); }
+    ms.back.hidden=true; editingMeasure=null; showToast("Medida salva ⚖️", null);
+  });
+  ms.del.addEventListener("click", function(){ if(editingMeasure) store.remove(editingMeasure.id); ms.back.hidden=true; editingMeasure=null; showToast("Medida apagada", null); });
+  ms.back.addEventListener("click", function(e){ if(e.target===ms.back){ ms.back.hidden=true; editingMeasure=null; } });
+
+  // ---------- resumo pro pediatra ----------
+  var report={ periodDays:7, start:null, end:null }, lastReport=null;
+  function fmtDate(ts){ var d=new Date(ts); return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); }
+  function fmtN(n,dec){ var f=Math.pow(10,dec||1); return (Math.round(n*f)/f).toString().replace(".",","); }
+  function reportRange(){
+    if(report.start && report.end){ var s=new Date(report.start+"T00:00:00").getTime(), e=new Date(report.end+"T23:59:59").getTime(); return {start:Math.min(s,e), end:Math.max(s,e)}; }
+    var end=Date.now(), start;
+    if(report.periodDays===1) start=end-24*3600000;
+    else { var d=new Date(); d.setDate(d.getDate()-(report.periodDays-1)); d.setHours(0,0,0,0); start=d.getTime(); }
+    return {start:start, end:end};
+  }
+  function buildReport(){
+    var r=reportRange();
+    fetchRange(r.start,r.end).then(function(items){
+      items=items.filter(function(e){ return !e.example && e.ts>=r.start && e.ts<=r.end; });
+      lastReport={ items:items, r:r };
+      byId("reportContent").innerHTML=reportHTML(items,r);
+    });
+  }
+  function reportHTML(items,r){
+    var spanDays=Math.max(1, Math.round((r.end-r.start)/86400000));
+    var name=(els.babyName.value||"Meu bebê").trim();
+    var age=settings.birth? ageLabel(settings.birth):"";
+    var feeds=items.filter(function(e){return e.type==="feed";});
+    var feedDone=feeds.filter(function(e){return e.endTs;}); var feedMs=0; feedDone.forEach(function(f){ feedMs+=(f.endTs-f.ts); });
+    var typeCounts={}; feeds.forEach(function(f){ if(f.detail) typeCounts[f.detail]=(typeCounts[f.detail]||0)+1; });
+    var fsorted=feeds.slice().sort(function(a,b){return a.ts-b.ts;}); var maxGap=0; for(var i=1;i<fsorted.length;i++){ var g=fsorted[i].ts-fsorted[i-1].ts; if(g>maxGap) maxGap=g; }
+    var sleeps=items.filter(function(e){return e.type==="sleep"&&e.endTs;}); var sleepMs=0,maxSleep=0; sleeps.forEach(function(s){ var d=s.endTs-s.ts; sleepMs+=d; if(d>maxSleep) maxSleep=d; });
+    var pee=items.filter(function(e){return e.type==="pee";}).length, poop=items.filter(function(e){return e.type==="poop";}).length;
+    var measures=items.filter(function(e){return e.type==="measure";}).sort(function(a,b){return a.ts-b.ts;});
+    var withW=measures.filter(function(m){return m.weight!=null;});
+    var notes=items.filter(function(e){return e.type==="note";}).sort(function(a,b){return b.ts-a.ts;});
+
+    var h='<div class="rep-h1">'+esc(name)+'</div><div class="rep-meta">'+(age?esc(age)+" · ":"")+'Período: '+fmtDate(r.start)+' – '+fmtDate(r.end)+' ('+spanDays+(spanDays===1?" dia":" dias")+')</div>';
+
+    // Alimentação
+    h+='<div class="rep-sec"><h4>🍼 Alimentação</h4><div class="rep-grid">';
+    h+=kv("Mamadas no período", feeds.length);
+    h+=kv("Média por dia", fmtN(feeds.length/spanDays,1));
+    h+=kv("Duração média", feedDone.length? fmtDur(feedMs/feedDone.length):"—");
+    h+=kv("Tempo total mamando", feedMs? fmtDur(feedMs):"—");
+    h+=kv("Maior intervalo", maxGap? fmtDur(maxGap):"—");
+    var tc=Object.keys(typeCounts).map(function(k){ return k+": "+typeCounts[k]; }).join(" · ");
+    h+=kv("Tipos", tc||"—");
+    h+='</div></div>';
+
+    // Sono
+    h+='<div class="rep-sec"><h4>😴 Sono</h4><div class="rep-grid">';
+    h+=kv("Média por dia", sleepMs? fmtDur(sleepMs/spanDays):"—");
+    h+=kv("Sonecas no período", sleeps.length);
+    h+=kv("Média de sonecas/dia", fmtN(sleeps.length/spanDays,1));
+    h+=kv("Maior soneca", maxSleep? fmtDur(maxSleep):"—");
+    h+='</div></div>';
+
+    // Fraldas
+    h+='<div class="rep-sec"><h4>💧 Fraldas</h4><div class="rep-grid">';
+    h+=kv("Xixis no período", pee);
+    h+=kv("Xixis por dia", fmtN(pee/spanDays,1));
+    h+=kv("Cocôs no período", poop);
+    h+=kv("Cocôs por dia", fmtN(poop/spanDays,1));
+    h+='</div></div>';
+
+    // Medidas
+    h+='<div class="rep-sec"><h4>⚖️ Medidas</h4>';
+    if(measures.length){
+      var last=measures[measures.length-1];
+      h+='<div class="rep-grid">';
+      if(last.weight!=null) h+=kv("Peso atual", fmtKg(last.weight));
+      if(withW.length>=2){ var d=withW[withW.length-1].weight-withW[0].weight; h+=kv("Variação de peso", (d>=0?"+":"")+Math.round(d*1000)+" g"); }
+      if(last.height!=null) h+=kv("Altura atual", fmtN(last.height,1)+" cm");
+      if(last.temp!=null) h+=kv("Última temperatura", fmtTemp(last.temp));
+      h+='</div>';
+      h+='<ul class="rep-list" style="margin-top:8px">'+measures.slice().reverse().map(function(m){ return '<li><time>'+fmtDate(m.ts)+'</time><span>'+esc(measureText(m)||"—")+(m.note?" · "+esc(m.note):"")+'</span></li>'; }).join("")+'</ul>';
+    } else h+='<div class="rep-empty">Nenhuma medida registrada no período.</div>';
+    h+='</div>';
+
+    // Eventos/anotações
+    h+='<div class="rep-sec"><h4>📝 Eventos e anotações</h4>';
+    if(notes.length) h+='<ul class="rep-list">'+notes.map(function(n){ return '<li><time>'+fmtDate(n.ts)+" "+clock(n.ts)+'</time><span>'+esc(n.note||"")+'</span></li>'; }).join("")+'</ul>';
+    else h+='<div class="rep-empty">Nenhuma anotação no período.</div>';
+    h+='</div>';
+
+    // Tabela dia a dia
+    var dm={}, order=[];
+    items.forEach(function(e){ var k=dayKey(e.ts); if(!dm[k]){ dm[k]={feeds:0,sleepMs:0,pee:0,poop:0}; order.push(k); }
+      if(e.type==="feed") dm[k].feeds++; if(e.type==="sleep"&&e.endTs) dm[k].sleepMs+=(e.endTs-e.ts);
+      if(e.type==="pee") dm[k].pee++; if(e.type==="poop") dm[k].poop++; });
+    order.sort();
+    if(order.length){
+      h+='<div class="rep-sec"><h4>📅 Dia a dia</h4><table class="rep-table"><thead><tr><th>Dia</th><th>🍼</th><th>😴</th><th>💧</th><th>💩</th></tr></thead><tbody>';
+      order.forEach(function(k){ var x=dm[k]; var p=k.split("-"); h+='<tr><td>'+pad(+p[2])+"/"+pad(+p[1])+'</td><td>'+x.feeds+'</td><td>'+(x.sleepMs?fmtDur(x.sleepMs):"—")+'</td><td>'+x.pee+'</td><td>'+x.poop+'</td></tr>'; });
+      h+='</tbody></table></div>';
+    }
+
+    h+='<div class="rep-foot">Gerado por Diário do Bebê · mamei.com.br · '+fmtDate(Date.now())+" "+clock(Date.now())+'.<br>Os dados são um registro dos pais e a janela de sono é uma referência por idade — não substituem avaliação do pediatra.</div>';
+    return h;
+  }
+  function kv(k,v){ return '<div class="rep-kv"><span class="k">'+k+'</span><span class="v">'+esc(String(v))+'</span></div>'; }
+
+  function shareText(){
+    if(!lastReport) return "";
+    var it=lastReport.items, r=lastReport.r, spanDays=Math.max(1,Math.round((r.end-r.start)/86400000));
+    var name=(els.babyName.value||"Meu bebê").trim();
+    var feeds=it.filter(function(e){return e.type==="feed";}), fd=feeds.filter(function(e){return e.endTs;}); var fMs=0; fd.forEach(function(f){fMs+=f.endTs-f.ts;});
+    var sl=it.filter(function(e){return e.type==="sleep"&&e.endTs;}); var sMs=0; sl.forEach(function(s){sMs+=s.endTs-s.ts;});
+    var pee=it.filter(function(e){return e.type==="pee";}).length, poop=it.filter(function(e){return e.type==="poop";}).length;
+    var mz=it.filter(function(e){return e.type==="measure"&&e.weight!=null;}).sort(function(a,b){return a.ts-b.ts;});
+    var t="📋 Resumo — "+name+(settings.birth?" ("+ageLabel(settings.birth)+")":"")+"\n"+fmtDate(r.start)+" a "+fmtDate(r.end)+" ("+spanDays+"d)\n";
+    t+="\n🍼 Mamadas: "+feeds.length+" ("+fmtN(feeds.length/spanDays,1)+"/dia)";
+    if(fd.length) t+=", duração média "+fmtDur(fMs/fd.length);
+    t+="\n😴 Sono: "+(sMs?fmtDur(sMs/spanDays):"—")+"/dia em "+sl.length+" sonecas";
+    t+="\n💧 Xixi: "+pee+" ("+fmtN(pee/spanDays,1)+"/dia)  💩 Cocô: "+poop+" ("+fmtN(poop/spanDays,1)+"/dia)";
+    if(mz.length) t+="\n⚖️ Peso atual: "+fmtKg(mz[mz.length-1].weight);
+    t+="\n\nvia mamei.com.br";
+    return t;
+  }
+
+  byId("reportBtn").addEventListener("click", function(){ report.periodDays=7; report.start=null; report.end=null;
+    byId("reportPeriods").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", +x.getAttribute("data-p")===7); });
+    byId("repStart").value=""; byId("repEnd").value=""; byId("reportOverlay").hidden=false; buildReport(); });
+  byId("reportClose").addEventListener("click", function(){ byId("reportOverlay").hidden=true; });
+  byId("reportPeriods").addEventListener("click", function(e){ var b=e.target.closest("button"); if(!b) return; report.periodDays=+b.getAttribute("data-p"); report.start=null; report.end=null;
+    byId("reportPeriods").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", x===b); }); byId("repStart").value=""; byId("repEnd").value=""; buildReport(); });
+  function repCustom(){ var s=byId("repStart").value, e=byId("repEnd").value; if(s&&e){ report.start=s; report.end=e; report.periodDays=0;
+    byId("reportPeriods").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", false); }); buildReport(); } }
+  byId("repStart").addEventListener("change", repCustom); byId("repEnd").addEventListener("change", repCustom);
+  byId("reportPrint").addEventListener("click", function(){ window.print(); });
+  byId("reportShare").addEventListener("click", function(){ var txt=shareText(); if(!txt) return;
+    if(navigator.share){ navigator.share({ title:"Resumo pro pediatra", text:txt }).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(function(){ showToast("Resumo copiado! Cole no WhatsApp.", null); }).catch(function(){ prompt("Copie o resumo:", txt); }); }
+    else prompt("Copie o resumo:", txt); });
 
   // ---------- toast ----------
   var toastTimer=null, undoFn=null;
