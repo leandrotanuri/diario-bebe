@@ -182,6 +182,8 @@
   .ev.poop .ev-dot{background:var(--poop-bg)} .ev.poop .ev-title{color:var(--poop)}
   .ev.sleep .ev-dot{background:var(--sleep-bg)} .ev.sleep .ev-title{color:var(--sleep)}
   .ev.note .ev-dot{background:var(--note-bg)} .ev.note .ev-title{color:var(--note)}
+  .ev-go{color:var(--ink-soft); font-size:20px; flex:none; opacity:.45; margin-left:2px}
+  .tl-hint{font-size:12px; color:var(--ink-soft); text-align:center; margin:8px 4px 2px}
   .ev.example{opacity:.5}
   .ev.ongoing{border-style:dashed}
   .ev.sleep.ongoing{border-color:var(--sleep)}
@@ -479,9 +481,9 @@
       <label>Detalhe</label>
       <div class="chips" id="detailChips"></div>
     </div>
-    <div class="field">
-      <label for="editTime">Horário</label>
-      <input type="time" id="editTime">
+    <div class="field-row">
+      <div class="field"><label for="editTime" id="editTimeLabel">Horário</label><input type="time" id="editTime"></div>
+      <div class="field" id="editEndWrap" hidden><label for="editEnd">Fim</label><input type="time" id="editEnd"></div>
     </div>
     <div class="field">
       <label for="editNote">Observação</label>
@@ -917,6 +919,7 @@ import { firebaseConfig } from "./firebase-config.js";
     var groups={}, order=[];
     list.forEach(function(ev){ var k=dayKey(ev.ts); if(!groups[k]){ groups[k]=[]; order.push(k); } groups[k].push(ev); });
     var html=""; if(isExampleMode()) html+='<p class="example-banner">Exemplo — toque num botão acima para começar a registrar.</p>';
+    else html+='<p class="tl-hint">✎ Toque num registro para corrigir horário, detalhe ou apagar.</p>';
     order.forEach(function(k){ html+='<div class="daygroup"><div class="dayhead">'+dayLabel(k)+'</div><div class="events">';
       groups[k].forEach(function(ev){ html+=evRow(ev); }); html+='</div></div>'; });
     els.viewToday.innerHTML=html;
@@ -937,7 +940,8 @@ import { firebaseConfig } from "./firebase-config.js";
       : '<div class="ev-time">'+clock(rts)+'<span class="ev-ago" data-ts="'+rts+'">'+fmtAgo(rts)+'</span></div>';
     return '<button class="ev '+t.cls+(ev.example?" example":"")+(ongoing?" ongoing":"")+'" data-id="'+ev.id+'"'+(ev.example?" disabled":"")+'>'
       +'<span class="ev-dot">'+t.emoji+'</span><span class="ev-body"><span class="ev-title">'+esc(title)+'</span>'
-      +(detail?'<span class="ev-detail">'+esc(detail)+'</span>':'')+'</span>'+right+'</button>';
+      +(detail?'<span class="ev-detail">'+esc(detail)+'</span>':'')+'</span>'+right
+      +(ev.example?'':'<span class="ev-go" aria-hidden="true">›</span>')+'</button>';
   }
   function renderSummary(){
     var range=periodRange(summaryPeriod);
@@ -1036,7 +1040,8 @@ import { firebaseConfig } from "./firebase-config.js";
   // ---------- edit sheet ----------
   var editing=null, editDetail="";
   var eb={ back:byId("editBackdrop"), title:byId("editTitle"), sub:byId("editSub"), detailField:byId("detailField"),
-    detailChips:byId("detailChips"), time:byId("editTime"), note:byId("editNote"), del:byId("editDelete"), cancel:byId("editCancel"), save:byId("editSave") };
+    detailChips:byId("detailChips"), time:byId("editTime"), timeLabel:byId("editTimeLabel"), end:byId("editEnd"), endWrap:byId("editEndWrap"),
+    note:byId("editNote"), del:byId("editDelete"), cancel:byId("editCancel"), save:byId("editSave") };
   function openEdit(ev){
     if(ev.type==="measure"){ openMeasure(ev); return; }
     editing=ev; editDetail=ev.detail||""; var t=TYPES[ev.type]||TYPES.note;
@@ -1046,6 +1051,8 @@ import { firebaseConfig } from "./firebase-config.js";
     var durTxt=(isSession&&ev.endTs)?" · durou "+fmtDur(ev.endTs-ev.ts):"";
     eb.sub.textContent=dayLabel(dayKey(ev.ts))+" às "+clock(ev.ts)+durTxt;
     eb.time.value=clock(ev.ts); eb.note.value=ev.note||"";
+    if(isSession && ev.endTs){ eb.timeLabel.textContent="Início"; eb.endWrap.hidden=false; eb.end.value=clock(ev.endTs); }
+    else { eb.timeLabel.textContent = isSession? "Início" : "Horário"; eb.endWrap.hidden=true; }
     if(ev.type==="feed"){ eb.detailField.hidden=false;
       eb.detailChips.innerHTML=FEED_DETAILS.map(function(d){ return '<button class="chip" data-d="'+d+'" aria-pressed="'+(d===editDetail)+'">'+d+'</button>'; }).join("");
     } else eb.detailField.hidden=true;
@@ -1059,8 +1066,11 @@ import { firebaseConfig } from "./firebase-config.js";
   eb.save.addEventListener("click", function(){
     if(!editing) return; var patch={ note:eb.note.value.trim() };
     var parts=eb.time.value.split(":");
-    if(parts.length===2){ var d=new Date(editing.ts); d.setHours(+parts[0],+parts[1],0,0); patch.ts=d.getTime(); patch.day=dayKey(patch.ts);
-      if(editing.endTs && patch.ts>editing.endTs){ delete patch.ts; delete patch.day; showToast("Início não pode ser depois do fim.", null); } }
+    if(parts.length===2){ var d=new Date(editing.ts); d.setHours(+parts[0],+parts[1],0,0); patch.ts=d.getTime(); patch.day=dayKey(patch.ts); }
+    if(!eb.endWrap.hidden && editing.endTs!=null){ var ep=eb.end.value.split(":");
+      if(ep.length===2){ var ed=new Date(editing.endTs); ed.setHours(+ep[0],+ep[1],0,0); patch.endTs=ed.getTime(); } }
+    var st=(patch.ts!=null)?patch.ts:editing.ts, en=(patch.endTs!=null)?patch.endTs:editing.endTs;
+    if(en!=null && st>en){ showToast("O início não pode ser depois do fim.", null); return; }
     if(editing.type==="feed") patch.detail=editDetail;
     store.update(editing.id,patch); eb.back.hidden=true; editing=null;
   });
