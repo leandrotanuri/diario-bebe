@@ -576,6 +576,7 @@
     </div>
 
     <button class="set-link" id="setTour">🎓 Ver o tutorial de novo</button>
+    <button class="set-link" id="setWipe" style="color:var(--danger)">🗑 Apagar todo o histórico</button>
 
     <div class="sheet-actions">
       <button class="btn danger" id="setClear" aria-label="Limpar data" title="Limpar">🗑</button>
@@ -1631,6 +1632,19 @@ import { firebaseConfig } from "./firebase-config.js";
   byId("tourNext").addEventListener("click", nextTour);
   byId("tourSkip").addEventListener("click", endTour);
   byId("setTour").addEventListener("click", function(){ sb.back.hidden=true; setTimeout(startTour, 280); });
+  byId("setWipe").addEventListener("click", function(){
+    if(!window.confirm("Apagar TODOS os registros deste diário (mamadas, sono, fraldas, medidas, anotações)?\n\nO nome e o nascimento do bebê continuam. Isso não pode ser desfeito.")) return;
+    try{ localStorage.removeItem("bebe.notifState"); }catch(e){}
+    if(store.mode==="sync"){
+      getDocs(collection(store.db, evPath())).then(function(qs){
+        var ps=[]; qs.forEach(function(dc){ ps.push(deleteDoc(doc(store.db, evPath()+"/"+dc.id))); });
+        return Promise.all(ps);
+      }).then(function(){ sb.back.hidden=true; showToast("Histórico apagado. Começando do zero 🍼", null); })
+        .catch(function(e){ console.warn(e); showToast("Não consegui apagar tudo. Tente de novo.", null); });
+    } else {
+      store.events=[]; localSave(); store._emit(); sb.back.hidden=true; showToast("Histórico apagado 🍼", null);
+    }
+  });
 
   render();
   boot();
