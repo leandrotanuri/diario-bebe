@@ -76,7 +76,7 @@
     background:color-mix(in srgb, var(--bg) 88%, transparent);
     backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     padding-block:12px; margin:0 -16px 4px; padding-inline:16px;
-    display:flex; align-items:center; gap:10px;
+    display:flex; align-items:center; gap:7px;
     border-bottom:1px solid var(--line);
   }
   .baby{display:flex; flex-direction:column; min-width:0; flex:1}
@@ -90,9 +90,9 @@
     text-align:left; cursor:pointer; font-family:var(--font-b)}
   .baby-sub:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
   .icon-btn{
-    width:42px; height:42px; flex:none; border-radius:14px;
+    width:40px; height:40px; flex:none; border-radius:13px;
     border:1px solid var(--line); background:var(--surface); color:var(--ink);
-    font-size:18px; cursor:pointer; display:grid; place-items:center;
+    font-size:17px; cursor:pointer; display:grid; place-items:center;
     transition:transform .12s ease, background .2s ease;
   }
   .icon-btn:active{transform:scale(.94)}
@@ -389,6 +389,7 @@
       <input class="baby-name" id="babyName" value="Meu bebê" aria-label="Nome do bebê" maxlength="28" spellcheck="false">
       <button class="baby-sub" id="babySub" title="Definir data de nascimento">carregando…</button>
     </div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Configurações" title="Configurações: nascimento e lembretes">⚙️</button>
     <button class="icon-btn" id="soundBtn" aria-label="Ruído branco" title="Ruído branco pra dormir">🔊</button>
     <button class="icon-btn" id="shareBtn" aria-label="Convidar" title="Convidar a mãe/pai">👥</button>
     <button class="icon-btn" id="themeBtn" aria-label="Alternar tema" title="Tema claro/escuro">◐</button>
@@ -1086,6 +1087,7 @@ import { firebaseConfig } from "./firebase-config.js";
     render();
   }
   byId("babySub").addEventListener("click", openSettings);
+  byId("settingsBtn").addEventListener("click", openSettings);
   byId("predNap").addEventListener("click", function(){ if(!settings.birth) openSettings(); });
   sb.save.addEventListener("click", function(){ saveBirth(sb.birth.value||null); sb.back.hidden=true; });
   sb.clear.addEventListener("click", function(){ saveBirth(null); sb.birth.value=""; sb.back.hidden=true; });
