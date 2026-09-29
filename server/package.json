@@ -1,0 +1,14 @@
+{
+  "name": "diario-bebe-push",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enviador de lembretes push do Diário do Bebê (roda no GitHub Actions).",
+  "main": "send-reminders.js",
+  "scripts": {
+    "start": "node send-reminders.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "web-push": "^3.6.7"
+  }
+}

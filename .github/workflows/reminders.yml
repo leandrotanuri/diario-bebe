@@ -1,0 +1,33 @@
+name: Lembretes push
+
+# Roda a cada ~15 min (o GitHub pode atrasar um pouco em horários de pico).
+# Também dá pra rodar na mão em Actions → "Lembretes push" → Run workflow.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+# Evita rodadas sobrepostas.
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar dependências
+        working-directory: server
+        run: npm install --no-audit --no-fund
+      - name: Enviar lembretes
+        working-directory: server
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          VAPID_SUBJECT: "mailto:leandro.tanuri@outlook.com"
+        run: node send-reminders.js
