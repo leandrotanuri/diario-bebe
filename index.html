@@ -480,7 +480,7 @@
 
   <div class="mini-actions">
     <button class="note-btn" id="noteBtn">✎ Anotar (remédio, banho, febre…)</button>
-    <button class="note-btn" id="measureBtn">⚖️ Peso / altura / temperatura</button>
+    <button class="note-btn" id="measureBtn">⚖️ Peso / altura</button>
   </div>
 
   <div class="seg" role="tablist">
@@ -624,10 +624,7 @@
       <div class="field"><label for="mWeight">Peso (kg)</label><input type="text" id="mWeight" inputmode="decimal" placeholder="ex: 3,450"></div>
       <div class="field"><label for="mHeight">Altura (cm)</label><input type="text" id="mHeight" inputmode="decimal" placeholder="ex: 52"></div>
     </div>
-    <div class="field-row">
-      <div class="field"><label for="mTemp">Temperatura (°C)</label><input type="text" id="mTemp" inputmode="decimal" placeholder="ex: 36,7"></div>
-      <div class="field"><label for="mDate">Data</label><input type="date" id="mDate"></div>
-    </div>
+    <div class="field"><label for="mDate">Data</label><input type="date" id="mDate"></div>
     <div class="field"><label for="mNote">Observação</label><input type="text" id="mNote" placeholder="opcional"></div>
     <div class="sheet-actions">
       <button class="btn danger" id="mDelete" aria-label="Apagar" hidden>🗑</button>
@@ -1338,13 +1335,12 @@ import { firebaseConfig } from "./firebase-config.js";
   function fmtTemp(t){ return (Math.round(t*10)/10).toString().replace(".",",")+"°C"; }
   function measureText(ev){ var p=[]; if(ev.weight!=null) p.push(fmtKg(ev.weight)); if(ev.height!=null) p.push((Math.round(ev.height*10)/10).toString().replace(".",",")+" cm"); if(ev.temp!=null) p.push(fmtTemp(ev.temp)); return p.join(" · "); }
   var editingMeasure=null;
-  var ms={ back:byId("measureBackdrop"), title:byId("measureTitle"), w:byId("mWeight"), h:byId("mHeight"), t:byId("mTemp"), date:byId("mDate"), note:byId("mNote"), del:byId("mDelete"), cancel:byId("mCancel"), save:byId("mSave") };
+  var ms={ back:byId("measureBackdrop"), title:byId("measureTitle"), w:byId("mWeight"), h:byId("mHeight"), date:byId("mDate"), note:byId("mNote"), del:byId("mDelete"), cancel:byId("mCancel"), save:byId("mSave") };
   function openMeasure(ev){
     editingMeasure=ev||null;
     ms.title.textContent = ev? "⚖️ Editar medida" : "⚖️ Nova medida";
     ms.w.value = ev&&ev.weight!=null? String(ev.weight).replace(".",",") : "";
     ms.h.value = ev&&ev.height!=null? String(ev.height).replace(".",",") : "";
-    ms.t.value = ev&&ev.temp!=null? String(ev.temp).replace(".",",") : "";
     ms.note.value = ev&&ev.note? ev.note : "";
     ms.date.value = dayKey(ev? ev.ts : Date.now());
     ms.del.hidden = !ev; ms.back.hidden=false;
@@ -1352,14 +1348,14 @@ import { firebaseConfig } from "./firebase-config.js";
   byId("measureBtn").addEventListener("click", function(){ openMeasure(null); setTimeout(function(){ ms.w.focus(); },80); });
   ms.cancel.addEventListener("click", function(){ ms.back.hidden=true; editingMeasure=null; });
   ms.save.addEventListener("click", function(){
-    var w=numBR(ms.w.value), h=numBR(ms.h.value), t=numBR(ms.t.value), note=ms.note.value.trim();
-    if(w==null && h==null && t==null && !note){ ms.back.hidden=true; editingMeasure=null; return; }
+    var w=numBR(ms.w.value), h=numBR(ms.h.value), note=ms.note.value.trim();
+    if(w==null && h==null && !note){ ms.back.hidden=true; editingMeasure=null; return; }
     var base = editingMeasure? new Date(editingMeasure.ts) : new Date();
     var parts=(ms.date.value||dayKey(Date.now())).split("-");
     if(parts.length===3) base.setFullYear(+parts[0], +parts[1]-1, +parts[2]);
     var ts=base.getTime();
-    if(editingMeasure){ store.update(editingMeasure.id, { ts:ts, day:dayKey(ts), note:note, weight:w, height:h, temp:t }); }
-    else { store.add({ type:"measure", ts:ts, note:note, weight:w, height:h, temp:t }); }
+    if(editingMeasure){ store.update(editingMeasure.id, { ts:ts, day:dayKey(ts), note:note, weight:w, height:h }); }
+    else { store.add({ type:"measure", ts:ts, note:note, weight:w, height:h }); }
     ms.back.hidden=true; editingMeasure=null; showToast("Medida salva ⚖️", null);
   });
   ms.del.addEventListener("click", function(){ if(editingMeasure) store.remove(editingMeasure.id); ms.back.hidden=true; editingMeasure=null; showToast("Medida apagada", null); });
@@ -1598,7 +1594,7 @@ import { firebaseConfig } from "./firebase-config.js";
   var TOUR=[
     {sel:".tiles", text:"👆 Aqui você registra com <b>um toque</b>: Mamou, Xixi, Coco e Sono. <b>Mamada</b> e <b>Sono</b> são cronômetros — toque pra começar e de novo pra parar (ele calcula a duração)."},
     {sel:"#status", text:"📊 No topo você acompanha o <b>agora</b>: última mamada, última troca. Quando o bebê ganhar rotina, aparece a <b>próxima mamada e soneca</b> sugeridas."},
-    {sel:".mini-actions", text:"📝 Anote outras coisas (remédio, febre, banho) e registre <b>peso, altura e temperatura</b> — tudo entra no resumo do pediatra."},
+    {sel:".mini-actions", text:"📝 Anote outras coisas (remédio, febre, banho) e registre <b>peso e altura</b> — tudo entra no resumo do pediatra."},
     {sel:"#settingsBtn", text:"⚙️ Aqui você define o <b>nascimento</b> do bebê e liga os <b>lembretes</b> (avisos de mamada e soneca no celular)."},
     {sel:"#shareBtn", text:"👥 Convide quem cuida junto (esposa/marido) — vocês veem o <b>mesmo diário</b>, em tempo real."},
     {sel:"#tabSummary", text:"📋 No <b>Resumo</b> tem gráficos e o <b>resumo pro pediatra</b> pra imprimir ou mandar no WhatsApp. Pronto, é só começar! 🍼"}
