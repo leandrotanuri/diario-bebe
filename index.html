@@ -354,6 +354,15 @@
     border-radius:10px; padding:10px; font-family:var(--font-b); font-size:15px}
   .rem-note{font-size:11.5px; color:var(--ink-soft); margin:6px 0 0; line-height:1.5}
 
+  /* Onboarding iOS */
+  .ios-steps{list-style:none; margin:8px 0 12px; padding:0; display:flex; flex-direction:column; gap:13px}
+  .ios-steps li{display:flex; align-items:flex-start; gap:12px; font-size:14.5px; line-height:1.5}
+  .ios-n{flex:none; width:24px; height:24px; border-radius:50%; background:var(--brand); color:#fff;
+    font-family:var(--font-d); font-weight:700; font-size:13px; display:grid; place-items:center; margin-top:1px}
+  .ios-share{display:inline-grid; place-items:center; width:26px; height:26px; border-radius:7px;
+    background:var(--brand-bg); color:var(--brand-ink); vertical-align:-8px; margin:0 1px}
+  .ios-hint{font-size:12.5px; color:var(--ink-soft); background:var(--surface-2); border-radius:10px; padding:9px 11px; line-height:1.5; margin:0}
+
   /* Tour guiado */
   .tour{position:fixed; inset:0; z-index:90}
   .tour-spot{position:fixed; border-radius:16px; border:2px solid var(--brand);
@@ -418,6 +427,11 @@
   <div id="installBanner" class="banner info" hidden>
     <span>📲 <b>Instalar</b> na tela inicial pra abrir tipo app.</span>
     <button id="installBtn">Instalar</button>
+  </div>
+
+  <div id="iosBanner" class="banner info" hidden>
+    <span>📲 <b>No iPhone:</b> adicione à Tela de Início pra usar como app e receber os avisos.</span>
+    <button id="iosHow">Como</button>
   </div>
 
   <div id="configBanner" class="banner warn" hidden>
@@ -660,6 +674,21 @@
 
     <button class="welcome-btn" id="welcomeStart">Começar</button>
     <p class="welcome-foot">Os registros ficam no diário deste link. Você pode ajustar tudo depois.</p>
+  </div>
+</div>
+
+<div class="backdrop" id="iosBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="iosTitle">
+    <h3 id="iosTitle">📲 Adicionar à Tela de Início</h3>
+    <p class="st-sub">No iPhone isso deixa o Diário como um app de verdade — e é <b>necessário pra receber os lembretes</b>.</p>
+    <ol class="ios-steps">
+      <li><span class="ios-n">1</span><span>Toque no botão <b>Compartilhar</b> <span class="ios-share"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg></span> na barra do Safari</span></li>
+      <li><span class="ios-n">2</span><span>Deslize e toque em <b>"Adicionar à Tela de Início"</b></span></li>
+      <li><span class="ios-n">3</span><span>Toque em <b>"Adicionar"</b> no canto superior direito</span></li>
+      <li><span class="ios-n">4</span><span>Abra o app pelo <b>ícone novo</b> na tela inicial e ligue os lembretes</span></li>
+    </ol>
+    <p class="ios-hint">⚠️ Precisa estar no <b>Safari</b> (não no Chrome). No iPhone o botão Compartilhar fica na <b>barra de baixo</b>.</p>
+    <div class="sheet-actions"><button class="btn primary" id="iosClose" style="flex:1">Entendi</button></div>
   </div>
 </div>
 
@@ -1189,12 +1218,16 @@ import { firebaseConfig } from "./firebase-config.js";
   }
   byId("remFeed").addEventListener("change", function(){
     var cb=this;
-    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.feed=true; saveReminders(); byId("remIvWrap").hidden=false; syncPushPrefs(); notify("🔔 Lembretes ligados", "Você vai ser avisado quando estiver na hora da mamada.", "test"); } else { cb.checked=false; } }); }
+    if(cb.checked){
+      if(needsIOSInstall()){ cb.checked=false; byId("iosBackdrop").hidden=false; return; }
+      ensureNotifPermission().then(function(ok){ if(ok){ reminders.feed=true; saveReminders(); byId("remIvWrap").hidden=false; syncPushPrefs(); notify("🔔 Lembretes ligados", "Você vai ser avisado quando estiver na hora da mamada.", "test"); } else { cb.checked=false; } }); }
     else { reminders.feed=false; saveReminders(); byId("remIvWrap").hidden=true; syncPushPrefs(); }
   });
   byId("remNap").addEventListener("change", function(){
     var cb=this;
-    if(cb.checked){ ensureNotifPermission().then(function(ok){ if(ok){ reminders.nap=true; saveReminders(); syncPushPrefs(); if(!settings.birth) showToast("Defina o nascimento pra calcular a janela de sono.", null); else notify("🔔 Lembrete de soneca ligado", "Você vai ser avisado quando fechar a janela de sono.", "test"); } else { cb.checked=false; } }); }
+    if(cb.checked){
+      if(needsIOSInstall()){ cb.checked=false; byId("iosBackdrop").hidden=false; return; }
+      ensureNotifPermission().then(function(ok){ if(ok){ reminders.nap=true; saveReminders(); syncPushPrefs(); if(!settings.birth) showToast("Defina o nascimento pra calcular a janela de sono.", null); else notify("🔔 Lembrete de soneca ligado", "Você vai ser avisado quando fechar a janela de sono.", "test"); } else { cb.checked=false; } }); }
     else { reminders.nap=false; saveReminders(); syncPushPrefs(); }
   });
   byId("remIv").addEventListener("change", function(){ reminders.feedIntervalMin=this.value? +this.value : null; saveReminders(); syncPushPrefs(); });
@@ -1499,6 +1532,16 @@ import { firebaseConfig } from "./firebase-config.js";
   byId("installBtn").addEventListener("click", function(){ if(!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.finally(function(){ deferredPrompt=null; byId("installBanner").hidden=true; }); });
   window.addEventListener("appinstalled", function(){ byId("installBanner").hidden=true; });
 
+  // ---------- onboarding iOS (adicionar à tela inicial) ----------
+  function isStandalone(){ try{ return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone===true; }catch(e){ return false; } }
+  function isIOS(){ var ua=navigator.userAgent||""; return /iphone|ipad|ipod/i.test(ua) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1); }
+  function needsIOSInstall(){ return isIOS() && !isStandalone(); }
+  function maybeIOSBanner(){ var dis=false; try{ dis=!!localStorage.getItem("bebe.iosDismiss"); }catch(e){}
+    if(needsIOSInstall() && !dis) byId("iosBanner").hidden=false; }
+  byId("iosHow").addEventListener("click", function(){ byId("iosBackdrop").hidden=false; });
+  byId("iosClose").addEventListener("click", function(){ byId("iosBackdrop").hidden=true; byId("iosBanner").hidden=true; try{ localStorage.setItem("bebe.iosDismiss","1"); }catch(e){} });
+  byId("iosBackdrop").addEventListener("click", function(e){ if(e.target===byId("iosBackdrop")) byId("iosBackdrop").hidden=true; });
+
   // ---------- badge sync ----------
   function setSyncBadge(sync){
     if(sync) els.syncNote.innerHTML='<span class="offline-badge" style="border-color:var(--brand);color:var(--brand)">● Sincronizado</span><br>Os registros aparecem em todos os celulares que abrem este link. Toque em 👥 pra convidar.';
@@ -1578,6 +1621,7 @@ import { firebaseConfig } from "./firebase-config.js";
   render();
   boot();
   maybeWelcome();
+  maybeIOSBanner();
 
   // ---------- service worker ----------
   if("serviceWorker" in navigator){ window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(e){ console.warn("SW",e); }); }); }
