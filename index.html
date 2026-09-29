@@ -513,9 +513,13 @@
       <label>Detalhe</label>
       <div class="chips" id="detailChips"></div>
     </div>
+    <div class="field" id="mlField" hidden>
+      <label for="editMl">Quantidade (ml) — opcional</label>
+      <input type="text" id="editMl" inputmode="numeric" maxlength="4" placeholder="ex: 120" autocomplete="off">
+    </div>
     <div class="field-row">
       <div class="field"><label for="editTime" id="editTimeLabel">Horário</label><input type="text" id="editTime" inputmode="numeric" maxlength="5" placeholder="hh:mm" autocomplete="off"></div>
-      <div class="field" id="editEndWrap" hidden><label for="editEnd">Fim</label><input type="text" id="editEnd" inputmode="numeric" maxlength="5" placeholder="hh:mm" autocomplete="off"></div>
+      <div class="field" id="editEndWrap" hidden><label for="editEnd">Fim <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-soft)">(vazio = em andamento)</span></label><input type="text" id="editEnd" inputmode="numeric" maxlength="5" placeholder="em andamento" autocomplete="off"></div>
     </div>
     <div class="field">
       <label for="editNote">Observação</label>
@@ -962,7 +966,7 @@ import { firebaseConfig } from "./firebase-config.js";
     els.statusEmoji.textContent=feed?"🍼":"👶";
     els.statusTitle.textContent=feed?("Última mamada "+fmtAgo(feed.endTs||feed.ts)):"Sem registros hoje";
     var dur=(feed&&feed.endTs)?" · durou "+fmtDur(feed.endTs-feed.ts):"";
-    els.statusMeta.textContent=feed?("às "+clock(feed.ts)+dur+(feed.detail?" · "+feed.detail:"")):"Toque num botão para começar.";
+    els.statusMeta.textContent=feed?("às "+clock(feed.ts)+dur+(feed.detail?" · "+feed.detail:"")+(feed.ml!=null?" · "+feed.ml+" ml":"")):"Toque num botão para começar.";
     els.statusChips.innerHTML=lastDiaper?('<div class="status-chip"><b>'+fmtAgo(lastDiaper.ts).replace("há ","")+'</b><span>última troca</span></div>'):"";
   }
   function renderFeedTile(list){
@@ -993,7 +997,7 @@ import { firebaseConfig } from "./firebase-config.js";
     if(ev.type==="sleep"){ if(ev.endTs){ title="Sono · "+fmtDur(ev.endTs-ev.ts); detail=clock(ev.ts)+" – "+clock(ev.endTs); } else { title="Dormindo"; detail="desde "+clock(ev.ts); } }
     else if(ev.type==="feed"){ if(ev.endTs){ title="Mamou · "+fmtDur(ev.endTs-ev.ts); detail=clock(ev.ts)+" – "+clock(ev.endTs); } else { title="Mamando"; detail="desde "+clock(ev.ts); } }
     else if(ev.type==="measure"){ title="Medida"; detail=measureText(ev); }
-    var extra=[]; if(ev.detail) extra.push(ev.detail); if(ev.note) extra.push(ev.note);
+    var extra=[]; if(ev.detail) extra.push(ev.detail); if(ev.type==="feed" && ev.ml!=null) extra.push(ev.ml+" ml"); if(ev.note) extra.push(ev.note);
     if(extra.length) detail = detail ? detail+" · "+extra.join(" · ") : extra.join(" · ");
     var rts = ongoing ? ev.ts : (ev.endTs||ev.ts);
     var right = ongoing
@@ -1101,7 +1105,8 @@ import { firebaseConfig } from "./firebase-config.js";
   // ---------- edit sheet ----------
   var editing=null, editDetail="";
   var eb={ back:byId("editBackdrop"), title:byId("editTitle"), sub:byId("editSub"), detailField:byId("detailField"),
-    detailChips:byId("detailChips"), time:byId("editTime"), timeLabel:byId("editTimeLabel"), end:byId("editEnd"), endWrap:byId("editEndWrap"),
+    detailChips:byId("detailChips"), mlField:byId("mlField"), ml:byId("editMl"),
+    time:byId("editTime"), timeLabel:byId("editTimeLabel"), end:byId("editEnd"), endWrap:byId("editEndWrap"),
     note:byId("editNote"), del:byId("editDelete"), cancel:byId("editCancel"), save:byId("editSave") };
   function fmtTimeInput(el){ el.addEventListener("input", function(){ var d=el.value.replace(/\D/g,"").slice(0,4); el.value = d.length>=3 ? d.slice(0,2)+":"+d.slice(2) : d; }); }
   fmtTimeInput(eb.time); fmtTimeInput(eb.end);
@@ -1115,11 +1120,12 @@ import { firebaseConfig } from "./firebase-config.js";
     var durTxt=(isSession&&ev.endTs)?" · durou "+fmtDur(ev.endTs-ev.ts):"";
     eb.sub.textContent=dayLabel(dayKey(ev.ts))+" às "+clock(ev.ts)+durTxt;
     eb.time.value=clock(ev.ts); eb.note.value=ev.note||"";
-    if(isSession && ev.endTs){ eb.timeLabel.textContent="Início"; eb.endWrap.hidden=false; eb.end.value=clock(ev.endTs); }
-    else { eb.timeLabel.textContent = isSession? "Início" : "Horário"; eb.endWrap.hidden=true; }
+    if(isSession){ eb.timeLabel.textContent="Início"; eb.endWrap.hidden=false; eb.end.value = ev.endTs? clock(ev.endTs) : ""; }
+    else { eb.timeLabel.textContent="Horário"; eb.endWrap.hidden=true; eb.end.value=""; }
     if(ev.type==="feed"){ eb.detailField.hidden=false;
       eb.detailChips.innerHTML=FEED_DETAILS.map(function(d){ return '<button class="chip" data-d="'+d+'" aria-pressed="'+(d===editDetail)+'">'+d+'</button>'; }).join("");
-    } else eb.detailField.hidden=true;
+      eb.mlField.hidden=false; eb.ml.value = ev.ml!=null? String(ev.ml) : "";
+    } else { eb.detailField.hidden=true; eb.mlField.hidden=true; }
     eb.back.hidden=false;
   }
   eb.detailChips.addEventListener("click", function(e){
@@ -1129,15 +1135,20 @@ import { firebaseConfig } from "./firebase-config.js";
   });
   eb.save.addEventListener("click", function(){
     if(!editing) return; var patch={ note:eb.note.value.trim() };
+    var isSession=(editing.type==="feed"||editing.type==="sleep");
     var pt=parseHHMM(eb.time.value);
     if(!pt){ showToast("Horário inválido. Use hh:mm (ex: 13:05).", null); return; }
     var d=new Date(editing.ts); d.setHours(pt.h,pt.m,0,0); patch.ts=d.getTime(); patch.day=dayKey(patch.ts);
-    if(!eb.endWrap.hidden && editing.endTs!=null){ var pe=parseHHMM(eb.end.value);
-      if(!pe){ showToast("Fim inválido. Use hh:mm.", null); return; }
-      var ed=new Date(editing.endTs); ed.setHours(pe.h,pe.m,0,0); patch.endTs=ed.getTime(); }
-    var st=(patch.ts!=null)?patch.ts:editing.ts, en=(patch.endTs!=null)?patch.endTs:editing.endTs;
+    if(isSession){
+      var endStr=(eb.end.value||"").trim();
+      if(endStr===""){ patch.endTs=null; }
+      else { var pe=parseHHMM(endStr); if(!pe){ showToast("Fim inválido. Use hh:mm ou deixe em branco (em andamento).", null); return; }
+        var baseEnd = editing.endTs!=null ? new Date(editing.endTs) : new Date(patch.ts);
+        baseEnd.setHours(pe.h,pe.m,0,0); patch.endTs=baseEnd.getTime(); }
+    }
+    var st=patch.ts, en=(patch.endTs!==undefined)?patch.endTs:editing.endTs;
     if(en!=null && st>en){ showToast("O início não pode ser depois do fim.", null); return; }
-    if(editing.type==="feed") patch.detail=editDetail;
+    if(editing.type==="feed"){ patch.detail=editDetail; var mlv=parseInt((eb.ml.value||"").replace(/\D/g,""),10); patch.ml=isNaN(mlv)?null:mlv; }
     store.update(editing.id,patch); eb.back.hidden=true; editing=null;
   });
   eb.del.addEventListener("click", function(){ if(!editing) return; store.remove(editing.id); eb.back.hidden=true; showToast("Registro apagado", null); editing=null; });
@@ -1379,6 +1390,7 @@ import { firebaseConfig } from "./firebase-config.js";
     var feeds=items.filter(function(e){return e.type==="feed";});
     var feedDone=feeds.filter(function(e){return e.endTs;}); var feedMs=0; feedDone.forEach(function(f){ feedMs+=(f.endTs-f.ts); });
     var typeCounts={}; feeds.forEach(function(f){ if(f.detail) typeCounts[f.detail]=(typeCounts[f.detail]||0)+1; });
+    var mlFeeds=feeds.filter(function(f){return f.ml!=null;}); var mlTotal=0; mlFeeds.forEach(function(f){ mlTotal+=f.ml; });
     var fsorted=feeds.slice().sort(function(a,b){return a.ts-b.ts;}); var maxGap=0; for(var i=1;i<fsorted.length;i++){ var g=fsorted[i].ts-fsorted[i-1].ts; if(g>maxGap) maxGap=g; }
     var sleeps=items.filter(function(e){return e.type==="sleep"&&e.endTs;}); var sleepMs=0,maxSleep=0; sleeps.forEach(function(s){ var d=s.endTs-s.ts; sleepMs+=d; if(d>maxSleep) maxSleep=d; });
     var pee=items.filter(function(e){return e.type==="pee";}).length, poop=items.filter(function(e){return e.type==="poop";}).length;
@@ -1397,6 +1409,7 @@ import { firebaseConfig } from "./firebase-config.js";
     h+=kv("Maior intervalo", maxGap? fmtDur(maxGap):"—");
     var tc=Object.keys(typeCounts).map(function(k){ return k+": "+typeCounts[k]; }).join(" · ");
     h+=kv("Tipos", tc||"—");
+    if(mlTotal>0){ h+=kv("Total em mamadeira", mlTotal+" ml"); h+=kv("Média por mamadeira", Math.round(mlTotal/mlFeeds.length)+" ml"); }
     h+='</div></div>';
 
     // Sono
@@ -1463,6 +1476,7 @@ import { firebaseConfig } from "./firebase-config.js";
     var t="📋 Resumo — "+name+(settings.birth?" ("+ageLabel(settings.birth)+")":"")+"\n"+fmtDate(r.start)+" a "+fmtDate(r.end)+" ("+spanDays+"d)\n";
     t+="\n🍼 Mamadas: "+feeds.length+" ("+fmtN(feeds.length/spanDays,1)+"/dia)";
     if(fd.length) t+=", duração média "+fmtDur(fMs/fd.length);
+    var mlT=0; feeds.forEach(function(f){ if(f.ml!=null) mlT+=f.ml; }); if(mlT>0) t+=" · "+mlT+" ml em mamadeira";
     t+="\n😴 Sono: "+(sMs?fmtDur(sMs/spanDays):"—")+"/dia em "+sl.length+" sonecas";
     t+="\n💧 Xixi: "+pee+" ("+fmtN(pee/spanDays,1)+"/dia)  💩 Cocô: "+poop+" ("+fmtN(poop/spanDays,1)+"/dia)";
     if(mz.length) t+="\n⚖️ Peso atual: "+fmtKg(mz[mz.length-1].weight);
