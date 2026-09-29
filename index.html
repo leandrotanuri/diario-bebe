@@ -354,6 +354,24 @@
     border-radius:10px; padding:10px; font-family:var(--font-b); font-size:15px}
   .rem-note{font-size:11.5px; color:var(--ink-soft); margin:6px 0 0; line-height:1.5}
 
+  /* Tour guiado */
+  .tour{position:fixed; inset:0; z-index:90}
+  .tour-spot{position:fixed; border-radius:16px; border:2px solid var(--brand);
+    box-shadow:0 0 0 9999px rgba(20,14,8,.72); transition:all .25s ease; pointer-events:none}
+  .tour-pop{position:fixed; max-width:300px; width:calc(100% - 32px); background:var(--surface); color:var(--ink);
+    border:1px solid var(--line); border-radius:16px; padding:14px 16px; box-shadow:0 12px 44px rgba(0,0,0,.4)}
+  .tour-text{font-size:14.5px; line-height:1.5}
+  .tour-text b{font-family:var(--font-d); font-weight:700}
+  .tour-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px}
+  .tour-skip{background:none; border:0; color:var(--ink-soft); font-size:13px; cursor:pointer; font-family:var(--font-b); padding:6px}
+  .tour-count{font-size:12px; color:var(--ink-soft); font-variant-numeric:tabular-nums}
+  .tour-next{background:var(--brand); color:#fff; border:0; border-radius:11px; padding:10px 18px;
+    font-family:var(--font-d); font-weight:700; cursor:pointer; font-size:14px}
+  @media (prefers-reduced-motion: reduce){ .tour-spot{transition:none} }
+
+  .set-link{display:block; width:100%; text-align:center; background:none; border:0; color:var(--brand-ink);
+    font-family:var(--font-b); font-weight:700; font-size:13.5px; cursor:pointer; padding:6px; margin-bottom:6px}
+
   /* Boas-vindas */
   .welcome{position:fixed; inset:0; z-index:80; overflow-y:auto;
     background:linear-gradient(180deg, var(--brand-bg) 0%, var(--bg) 55%);
@@ -536,8 +554,10 @@
         </select>
       </div>
       <label class="rem-row"><span>Avisar na <b>janela de sono</b></span><input type="checkbox" id="remNap"></label>
-      <p class="rem-note">Funciona com o app aberto ou minimizado. Aviso com o app fechado (push) vem numa próxima etapa.</p>
+      <p class="rem-note">Funciona no celular com o app aberto e também fechado (push). No iPhone, adicione o app à tela inicial pra receber.</p>
     </div>
+
+    <button class="set-link" id="setTour">🎓 Ver o tutorial de novo</button>
 
     <div class="sheet-actions">
       <button class="btn danger" id="setClear" aria-label="Limpar data" title="Limpar">🗑</button>
@@ -640,6 +660,18 @@
 
     <button class="welcome-btn" id="welcomeStart">Começar</button>
     <p class="welcome-foot">Os registros ficam no diário deste link. Você pode ajustar tudo depois.</p>
+  </div>
+</div>
+
+<div class="tour" id="tour" hidden>
+  <div class="tour-spot" id="tourSpot"></div>
+  <div class="tour-pop" id="tourPop">
+    <div class="tour-text" id="tourText"></div>
+    <div class="tour-row">
+      <button class="tour-skip" id="tourSkip">Pular</button>
+      <span class="tour-count" id="tourCount"></span>
+      <button class="tour-next" id="tourNext">Próximo</button>
+    </div>
   </div>
 </div>
 
@@ -1501,7 +1533,47 @@ import { firebaseConfig } from "./firebase-config.js";
     if(b) saveBirth(b);
     try{ localStorage.setItem("bebe.onboarded","1"); }catch(e){}
     byId("welcome").hidden=true; render();
+    if(!hasSeenTour()) setTimeout(startTour, 450);
   });
+
+  // ---------- tour guiado (1º acesso) ----------
+  var TOUR=[
+    {sel:".tiles", text:"👆 Aqui você registra com <b>um toque</b>: Mamou, Xixi, Coco e Sono. <b>Mamada</b> e <b>Sono</b> são cronômetros — toque pra começar e de novo pra parar (ele calcula a duração)."},
+    {sel:"#status", text:"📊 No topo você acompanha o <b>agora</b>: última mamada, última troca. Quando o bebê ganhar rotina, aparece a <b>próxima mamada e soneca</b> sugeridas."},
+    {sel:".mini-actions", text:"📝 Anote outras coisas (remédio, febre, banho) e registre <b>peso, altura e temperatura</b> — tudo entra no resumo do pediatra."},
+    {sel:"#settingsBtn", text:"⚙️ Aqui você define o <b>nascimento</b> do bebê e liga os <b>lembretes</b> (avisos de mamada e soneca no celular)."},
+    {sel:"#shareBtn", text:"👥 Convide quem cuida junto (esposa/marido) — vocês veem o <b>mesmo diário</b>, em tempo real."},
+    {sel:"#tabSummary", text:"📋 No <b>Resumo</b> tem gráficos e o <b>resumo pro pediatra</b> pra imprimir ou mandar no WhatsApp. Pronto, é só começar! 🍼"}
+  ];
+  var tourI=0, tourEl=null, tourResizeBound=false;
+  function hasSeenTour(){ try{ return !!localStorage.getItem("bebe.tour"); }catch(e){ return false; } }
+  function startTour(){ tourI=0; byId("tour").hidden=false;
+    if(!tourResizeBound){ window.addEventListener("resize", function(){ if(!byId("tour").hidden) positionTour(); }); tourResizeBound=true; }
+    showTourStep(); }
+  function endTour(){ byId("tour").hidden=true; try{ localStorage.setItem("bebe.tour","1"); }catch(e){} }
+  function showTourStep(){
+    var step=TOUR[tourI]; tourEl=step?document.querySelector(step.sel):null;
+    if(!tourEl || tourEl.hidden || tourEl.getBoundingClientRect().width===0){ tourI++; if(tourI>=TOUR.length){ endTour(); return; } showTourStep(); return; }
+    byId("tourText").innerHTML=step.text; byId("tourCount").textContent=(tourI+1)+"/"+TOUR.length;
+    byId("tourNext").textContent = tourI===TOUR.length-1 ? "Entendi!" : "Próximo";
+    var r0=tourEl.getBoundingClientRect();
+    var visible = r0.top>=4 && r0.bottom<=window.innerHeight-4;
+    if(!visible){ tourEl.scrollIntoView({ block:"center", behavior:"auto" }); }
+    setTimeout(positionTour, visible?50:120);
+  }
+  function positionTour(){
+    if(!tourEl) return; var r=tourEl.getBoundingClientRect(), pad=8, spot=byId("tourSpot");
+    spot.style.left=(r.left-pad)+"px"; spot.style.top=(r.top-pad)+"px"; spot.style.width=(r.width+pad*2)+"px"; spot.style.height=(r.height+pad*2)+"px";
+    var pop=byId("tourPop"), vh=window.innerHeight, vw=window.innerWidth, ph=pop.offsetHeight, pw=pop.offsetWidth;
+    var below = r.top < vh*0.5;
+    var top = below ? (r.bottom+12) : (r.top-12-ph); top=Math.max(8, Math.min(top, vh-ph-8));
+    var left = Math.min(Math.max(8, r.left + r.width/2 - pw/2), vw-pw-8);
+    pop.style.top=top+"px"; pop.style.left=left+"px";
+  }
+  function nextTour(){ tourI++; if(tourI>=TOUR.length){ endTour(); return; } showTourStep(); }
+  byId("tourNext").addEventListener("click", nextTour);
+  byId("tourSkip").addEventListener("click", endTour);
+  byId("setTour").addEventListener("click", function(){ sb.back.hidden=true; setTimeout(startTour, 280); });
 
   render();
   boot();
