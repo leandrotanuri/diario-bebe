@@ -434,6 +434,11 @@
     <button id="iosHow">Como</button>
   </div>
 
+  <div id="remindNudge" class="banner info" hidden>
+    <span>💡 <b>Ative os avisos</b> de mamada e soneca pra não esquecer.</span>
+    <button id="remindNudgeBtn">Ativar</button>
+  </div>
+
   <div id="configBanner" class="banner warn" hidden>
     <span>⚙️ <b>Firebase não configurado.</b> Rodando em modo offline (só neste aparelho). Veja o README.</span>
   </div>
@@ -1553,6 +1558,21 @@ import { firebaseConfig } from "./firebase-config.js";
   byId("iosClose").addEventListener("click", function(){ byId("iosBackdrop").hidden=true; byId("iosBanner").hidden=true; try{ localStorage.setItem("bebe.iosDismiss","1"); }catch(e){} });
   byId("iosBackdrop").addEventListener("click", function(e){ if(e.target===byId("iosBackdrop")) byId("iosBackdrop").hidden=true; });
 
+  // ---------- lembrete gentil: ative os avisos (pós-instalação) ----------
+  function maybeReminderNudge(){
+    if(!isStandalone()) return;                 // só quando aberto como app instalado
+    if(!("Notification" in window)) return;
+    if(reminders.feed || reminders.nap) return; // já usa os avisos
+    if(!hasSeenTour()) return;                   // não atrapalha as boas-vindas/tour
+    var done=false; try{ done=!!localStorage.getItem("bebe.nudgeDone"); }catch(e){}
+    if(done) return;
+    byId("remindNudge").hidden=false;
+  }
+  byId("remindNudgeBtn").addEventListener("click", function(){
+    byId("remindNudge").hidden=true; try{ localStorage.setItem("bebe.nudgeDone","1"); }catch(e){}
+    openSettings();
+  });
+
   // ---------- badge sync ----------
   function setSyncBadge(sync){
     if(sync) els.syncNote.innerHTML='<span class="offline-badge" style="border-color:var(--brand);color:var(--brand)">● Sincronizado</span><br>Os registros aparecem em todos os celulares que abrem este link. Toque em 👥 pra convidar.';
@@ -1604,7 +1624,7 @@ import { firebaseConfig } from "./firebase-config.js";
   function startTour(){ tourI=0; byId("tour").hidden=false;
     if(!tourResizeBound){ window.addEventListener("resize", function(){ if(!byId("tour").hidden) positionTour(); }); tourResizeBound=true; }
     showTourStep(); }
-  function endTour(){ byId("tour").hidden=true; try{ localStorage.setItem("bebe.tour","1"); }catch(e){} }
+  function endTour(){ byId("tour").hidden=true; try{ localStorage.setItem("bebe.tour","1"); }catch(e){} setTimeout(maybeReminderNudge, 400); }
   function showTourStep(){
     var step=TOUR[tourI]; tourEl=step?document.querySelector(step.sel):null;
     if(!tourEl || tourEl.hidden || tourEl.getBoundingClientRect().width===0){ tourI++; if(tourI>=TOUR.length){ endTour(); return; } showTourStep(); return; }
@@ -1646,6 +1666,7 @@ import { firebaseConfig } from "./firebase-config.js";
   boot();
   maybeWelcome();
   maybeIOSBanner();
+  maybeReminderNudge();
 
   // ---------- service worker ----------
   if("serviceWorker" in navigator){ window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(e){ console.warn("SW",e); }); }); }
