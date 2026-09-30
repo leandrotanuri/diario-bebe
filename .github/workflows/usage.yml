@@ -1,0 +1,26 @@
+name: Uso do app
+
+# Todo dia ~8h50 (Brasília). Pra ver na hora: Actions → "Uso do app" → Run workflow.
+# O relatório aparece no "Summary" da rodada.
+on:
+  schedule:
+    - cron: "50 11 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar dependências
+        working-directory: server
+        run: npm install --no-audit --no-fund
+      - name: Gerar relatório de uso
+        working-directory: server
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node usage-stats.js
