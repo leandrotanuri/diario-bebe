@@ -469,6 +469,10 @@
       <span class="emoji" id="feedEmoji">🍼</span>
       <span><span class="label" id="feedLabel">Mamou</span><br><span class="hint" id="feedHint">iniciar mamada</span></span>
     </button>
+    <button class="tile sleep" data-act="sleep" id="sleepTile">
+      <span class="emoji" id="sleepEmoji">😴</span>
+      <span><span class="label" id="sleepLabel">Dormiu</span><br><span class="hint" id="sleepHint">iniciar sono</span></span>
+    </button>
     <button class="tile pee" data-act="pee">
       <span class="emoji">💧</span>
       <span><span class="label">Xixi</span><br><span class="hint">troca de fralda</span></span>
@@ -476,10 +480,6 @@
     <button class="tile poop" data-act="poop">
       <span class="emoji">💩</span>
       <span><span class="label">Coco</span><br><span class="hint">troca de fralda</span></span>
-    </button>
-    <button class="tile sleep" data-act="sleep" id="sleepTile">
-      <span class="emoji" id="sleepEmoji">😴</span>
-      <span><span class="label" id="sleepLabel">Dormiu</span><br><span class="hint" id="sleepHint">iniciar sono</span></span>
     </button>
   </div>
 
@@ -1634,7 +1634,7 @@ import { firebaseConfig } from "./firebase-config.js";
 
   // ---------- tour guiado (1º acesso) ----------
   var TOUR=[
-    {sel:".tiles", text:"👆 Aqui você registra com <b>um toque</b>: Mamou, Xixi, Coco e Sono. <b>Mamada</b> e <b>Sono</b> são cronômetros — toque pra começar e de novo pra parar (ele calcula a duração)."},
+    {sel:".tiles", text:"👆 Aqui você registra com <b>um toque</b>: Mamou, Sono, Xixi e Coco. <b>Mamada</b> e <b>Sono</b> são cronômetros — toque pra começar e de novo pra parar (ele calcula a duração)."},
     {sel:"#status", text:"📊 No topo você acompanha o <b>agora</b>: última mamada, última troca. Quando o bebê ganhar rotina, aparece a <b>próxima mamada e soneca</b> sugeridas."},
     {sel:".mini-actions", text:"📝 Anote outras coisas (remédio, febre, banho) e registre <b>peso e altura</b> — tudo entra no resumo do pediatra."},
     {sel:"#settingsBtn", text:"⚙️ Aqui você define o <b>nascimento</b> do bebê e liga os <b>lembretes</b> (avisos de mamada e soneca no celular)."},
