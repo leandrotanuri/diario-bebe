@@ -97,6 +97,26 @@
   }
   .icon-btn:active{transform:scale(.94)}
   .icon-btn:focus-visible{outline:3px solid var(--brand); outline-offset:2px}
+  @media (max-width:380px){ header{gap:5px} .icon-btn{width:36px; height:36px; font-size:16px; border-radius:12px} }
+
+  /* ---------- luz vermelha (abajur noturno) ---------- */
+  .redlight{position:fixed; inset:0; z-index:1000; background:#000; touch-action:none; user-select:none;
+    -webkit-user-select:none; cursor:pointer}
+  .redlight-ui{position:absolute; left:0; right:0; bottom:0; padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px));
+    display:flex; flex-direction:column; align-items:center; gap:14px; color:#5a0000; transition:opacity .6s ease}
+  .redlight.idle .redlight-ui{opacity:0; pointer-events:none}
+  .redlight-pct{font:700 15px/1 var(--font-d); letter-spacing:.04em}
+  .redlight-row{display:flex; align-items:center; gap:12px; width:100%; max-width:420px}
+  .redlight-row span{font-size:18px; line-height:1}
+  .redlight input[type=range]{flex:1; -webkit-appearance:none; appearance:none; height:8px; border-radius:999px;
+    background:#2a0000; outline:none}
+  .redlight input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:30px; height:30px; border-radius:50%;
+    background:#6a0000; border:2px solid #000}
+  .redlight input[type=range]::-moz-range-thumb{width:30px; height:30px; border-radius:50%; background:#6a0000; border:2px solid #000}
+  .redlight-hint{font-size:12.5px; text-align:center; max-width:320px}
+  .redlight-close{position:absolute; top:calc(14px + env(safe-area-inset-top,0px)); right:14px; width:44px; height:44px;
+    border-radius:50%; border:1px solid #3a0000; background:#000; color:#6a0000; font-size:20px; cursor:pointer}
+  .redlight.idle .redlight-close{opacity:0; pointer-events:none}
 
   .status{
     background:var(--surface); border:1px solid var(--line);
@@ -419,6 +439,7 @@
       <button class="baby-sub" id="babySub" title="Definir data de nascimento">carregando…</button>
     </div>
     <button class="icon-btn" id="settingsBtn" aria-label="Configurações" title="Configurações: nascimento e lembretes">⚙️</button>
+    <button class="icon-btn" id="redBtn" aria-label="Luz vermelha" title="Luz vermelha pra mamada noturna">🔴</button>
     <button class="icon-btn" id="soundBtn" aria-label="Ruído branco" title="Ruído branco pra dormir">🔊</button>
     <button class="icon-btn" id="shareBtn" aria-label="Convidar" title="Convidar a mãe/pai">👥</button>
     <button class="icon-btn" id="themeBtn" aria-label="Alternar tema" title="Tema claro/escuro">◐</button>
@@ -713,6 +734,19 @@
 </div>
 
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="toastUndo">Desfazer</button></div>
+
+<div class="redlight" id="redLight" role="dialog" aria-modal="true" aria-label="Luz vermelha" hidden>
+  <button class="redlight-close" id="redClose" aria-label="Fechar luz vermelha">✕</button>
+  <div class="redlight-ui">
+    <div class="redlight-pct" id="redPct">40%</div>
+    <div class="redlight-row">
+      <span aria-hidden="true">🌑</span>
+      <input type="range" id="redDim" min="3" max="100" step="1" value="40" aria-label="Intensidade do vermelho">
+      <span aria-hidden="true">🔴</span>
+    </div>
+    <div class="redlight-hint">Arraste pra cima/baixo em qualquer lugar pra ajustar. Toque pra mostrar os controles.<br>Dica: baixe também o brilho do celular.</div>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -1546,6 +1580,41 @@ import { firebaseConfig } from "./firebase-config.js";
     els.viewToday.hidden=v!=="today"; els.viewSummary.hidden=v!=="summary"; render(); }
   byId("periodBar").addEventListener("click", function(e){ var b=e.target.closest("button"); if(!b) return; summaryPeriod=b.getAttribute("data-p");
     byId("periodBar").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", x===b); }); renderSummary(); });
+
+  // ---------- luz vermelha (abajur noturno com dimmer) ----------
+  var red={level:40, lock:null, idleT:null, drag:null};
+  try{ var rl=parseInt(localStorage.getItem("bebe.redLevel"),10); if(rl>=3&&rl<=100) red.level=rl; }catch(e){}
+  function redApply(){
+    // vermelho puro (sem verde/azul); curva quadrática deixa o dimmer mais fino nos níveis baixos
+    var v=Math.round(255*Math.pow(red.level/100,2)); if(v<4) v=4;
+    byId("redLight").style.background="rgb("+v+",0,0)";
+    byId("redDim").value=red.level; byId("redPct").textContent=red.level+"%";
+  }
+  function redSet(l){ red.level=Math.max(3,Math.min(100,Math.round(l))); redApply();
+    try{ localStorage.setItem("bebe.redLevel", red.level); }catch(e){} }
+  function redWake(){ var el=byId("redLight"); el.classList.remove("idle"); clearTimeout(red.idleT);
+    red.idleT=setTimeout(function(){ el.classList.add("idle"); }, 3500); }
+  function redLockScreen(){ if(!("wakeLock" in navigator)) return;
+    navigator.wakeLock.request("screen").then(function(l){ red.lock=l; }).catch(function(){}); }
+  function redOpen(){ var el=byId("redLight"); el.hidden=false; redApply(); redWake(); redLockScreen();
+    if(el.requestFullscreen) el.requestFullscreen().catch(function(){}); }
+  function redClose(){ byId("redLight").hidden=true; clearTimeout(red.idleT);
+    if(red.lock){ red.lock.release().catch(function(){}); red.lock=null; }
+    if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){}); }
+  byId("redBtn").addEventListener("click", redOpen);
+  byId("redClose").addEventListener("click", function(e){ e.stopPropagation(); redClose(); });
+  byId("redDim").addEventListener("input", function(){ redSet(+this.value); redWake(); });
+  // arrastar pra cima/baixo em qualquer ponto da tela funciona como dimmer
+  byId("redLight").addEventListener("pointerdown", function(e){ if(e.target.closest("input,button")) return;
+    red.drag={y:e.clientY, start:red.level, moved:false}; redWake(); });
+  byId("redLight").addEventListener("pointermove", function(e){ if(!red.drag) return;
+    var dy=red.drag.y-e.clientY; if(Math.abs(dy)>6) red.drag.moved=true;
+    if(red.drag.moved){ redSet(red.drag.start+dy/window.innerHeight*130); redWake(); } });
+  ["pointerup","pointercancel"].forEach(function(t){ byId("redLight").addEventListener(t, function(){ red.drag=null; }); });
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape" && !byId("redLight").hidden) redClose(); });
+  // a trava de tela cai quando o app vai pro fundo; pede de novo ao voltar
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState==="visible" && !byId("redLight").hidden) redLockScreen(); });
 
   // ---------- tema ----------
   (function(){ var saved=null; try{ saved=localStorage.getItem("bebe.theme"); }catch(e){} if(saved) document.documentElement.setAttribute("data-theme", saved); })();
