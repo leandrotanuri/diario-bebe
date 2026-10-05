@@ -738,10 +738,10 @@
 <div class="redlight" id="redLight" role="dialog" aria-modal="true" aria-label="Luz vermelha" hidden>
   <button class="redlight-close" id="redClose" aria-label="Fechar luz vermelha">✕</button>
   <div class="redlight-ui">
-    <div class="redlight-pct" id="redPct">40%</div>
+    <div class="redlight-pct" id="redPct">85%</div>
     <div class="redlight-row">
       <span aria-hidden="true">🌑</span>
-      <input type="range" id="redDim" min="3" max="100" step="1" value="40" aria-label="Intensidade do vermelho">
+      <input type="range" id="redDim" min="3" max="100" step="1" value="85" aria-label="Intensidade do vermelho">
       <span aria-hidden="true">🔴</span>
     </div>
     <div class="redlight-hint">Arraste pra cima/baixo em qualquer lugar pra ajustar. Toque pra mostrar os controles.<br>Dica: baixe também o brilho do celular.</div>
@@ -1582,21 +1582,20 @@ import { firebaseConfig } from "./firebase-config.js";
     byId("periodBar").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", x===b); }); renderSummary(); });
 
   // ---------- luz vermelha (abajur noturno com dimmer) ----------
-  var red={level:40, lock:null, idleT:null, drag:null};
-  try{ var rl=parseInt(localStorage.getItem("bebe.redLevel"),10); if(rl>=3&&rl<=100) red.level=rl; }catch(e){}
+  // sempre acende em 85%; o ajuste vale so enquanto a luz estiver aberta
+  var RED_START=85, red={level:RED_START, lock:null, idleT:null, drag:null};
   function redApply(){
     // vermelho puro (sem verde/azul); curva quadrática deixa o dimmer mais fino nos níveis baixos
     var v=Math.round(255*Math.pow(red.level/100,2)); if(v<4) v=4;
     byId("redLight").style.background="rgb("+v+",0,0)";
     byId("redDim").value=red.level; byId("redPct").textContent=red.level+"%";
   }
-  function redSet(l){ red.level=Math.max(3,Math.min(100,Math.round(l))); redApply();
-    try{ localStorage.setItem("bebe.redLevel", red.level); }catch(e){} }
+  function redSet(l){ red.level=Math.max(3,Math.min(100,Math.round(l))); redApply(); }
   function redWake(){ var el=byId("redLight"); el.classList.remove("idle"); clearTimeout(red.idleT);
     red.idleT=setTimeout(function(){ el.classList.add("idle"); }, 3500); }
   function redLockScreen(){ if(!("wakeLock" in navigator)) return;
     navigator.wakeLock.request("screen").then(function(l){ red.lock=l; }).catch(function(){}); }
-  function redOpen(){ var el=byId("redLight"); el.hidden=false; redApply(); redWake(); redLockScreen();
+  function redOpen(){ var el=byId("redLight"); el.hidden=false; red.level=RED_START; redApply(); redWake(); redLockScreen();
     if(el.requestFullscreen) el.requestFullscreen().catch(function(){}); }
   function redClose(){ byId("redLight").hidden=true; clearTimeout(red.idleT);
     if(red.lock){ red.lock.release().catch(function(){}); red.lock=null; }
