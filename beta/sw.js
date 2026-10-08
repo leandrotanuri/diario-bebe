@@ -1,17 +1,17 @@
-/* Service Worker — Diário do Bebê
+/* Service Worker — Mamei (beta)
    Cache do "app shell" para funcionar offline e ser instalável.
    Suba a versão (CACHE) sempre que mudar os arquivos, pra forçar atualização. */
-const CACHE = "bebe-v10";
+const CACHE = "mamei-beta-v1";
 const SHELL = [
   "./",
   "./index.html",
-  "./firebase-config.js",
+  "../firebase-config.js",
   "./manifest.webmanifest",
-  "./sounds/shh.mp3",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/icon-maskable-512.png",
-  "./icons/apple-touch-icon.png"
+  "../sounds/shh.mp3",
+  "../icons/icon-192.png",
+  "../icons/icon-512.png",
+  "../icons/icon-maskable-512.png",
+  "../icons/apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (e) => {
@@ -31,8 +31,6 @@ self.addEventListener("fetch", (e) => {
   // Só cuidamos do nosso próprio site. Firebase/Google (sync) passa direto pra rede.
   if (url.origin !== self.location.origin) return;
   if (e.request.method !== "GET") return;
-  // /beta/ (Mamei novo) tem service worker próprio; não cachear nada dele aqui.
-  if (url.pathname.indexOf(new URL("./beta/", self.registration.scope).pathname) === 0) return;
 
   // Navegação: network-first (pega versão nova quando online), cai pro cache offline.
   if (e.request.mode === "navigate") {
@@ -58,14 +56,14 @@ self.addEventListener("fetch", (e) => {
 
 // Push recebido do servidor (app fechado): mostra a notificação.
 self.addEventListener("push", (e) => {
-  let data = { title: "🍼 Diário do Bebê", body: "Toque para abrir.", tag: "push" };
+  let data = { title: "🍼 Mamei", body: "Toque para abrir.", tag: "push" };
   try { if (e.data) data = Object.assign(data, e.data.json()); } catch (err) {}
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
       tag: data.tag || "push",
-      icon: "icons/icon-192.png",
-      badge: "icons/icon-192.png",
+      icon: "../icons/icon-192.png",
+      badge: "../icons/icon-192.png",
       data: data
     })
   );

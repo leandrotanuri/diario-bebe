@@ -127,3 +127,14 @@ Abra `http://localhost:8000`. Sem o Firebase configurado, ele roda em **modo off
 - **Exportar PDF/planilha** pro pediatra.
 - **Notificações** (lembrete da próxima mamada).
 - Domínio próprio + tela de onboarding + assinatura.
+
+---
+
+## Mamei (beta) — `/beta/`
+
+Redesenho novo rodando **em paralelo** em `mamei.com.br/beta/`, usando o **mesmo Firebase e a mesma família**
+(o link `#f=fam-…` e o diário são os mesmos). O formato dos dados é compatível com o app atual e com o
+servidor de lembretes: os tipos `feed/sleep/pee/poop/note/measure` continuam; só ganham campos novos
+(lados E/D, ml, tipo de leite, extração, cor do cocô, perímetro cefálico…).
+
+Para migrar de vez: copiar `beta/index.html` para a raiz, trocar `../` por `./` nos caminhos e unificar o `sw.js`.
