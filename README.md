@@ -128,13 +128,12 @@ Abra `http://localhost:8000`. Sem o Firebase configurado, ele roda em **modo off
 - **Notificações** (lembrete da próxima mamada).
 - Domínio próprio + tela de onboarding + assinatura.
 
+
 ---
 
-## Mamei (beta) — `/beta/`
+## Mamei (app atual)
 
-Redesenho novo rodando **em paralelo** em `mamei.com.br/beta/`, usando o **mesmo Firebase e a mesma família**
-(o link `#f=fam-…` e o diário são os mesmos). O formato dos dados é compatível com o app atual e com o
-servidor de lembretes: os tipos `feed/sleep/pee/poop/note/measure` continuam; só ganham campos novos
-(lados E/D, ml, tipo de leite, extração, cor do cocô, perímetro cefálico…).
-
-Para migrar de vez: copiar `beta/index.html` para a raiz, trocar `../` por `./` nos caminhos e unificar o `sw.js`.
+Desde out/2026 o `index.html` é o redesenho **Mamei** (5 abas: Hoje, Diário, Crescer, Calma, Família).
+Os dados continuam no mesmo formato (`feed/sleep/pee/poop/note/measure`), só com campos novos
+(lados E/D, ml, tipo de leite, extração, cor do cocô, perímetro cefálico…), então o servidor de lembretes
+(`server/send-reminders.js`) segue funcionando sem mudanças. `/beta/` só redireciona para a raiz.
