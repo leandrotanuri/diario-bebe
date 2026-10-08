@@ -429,6 +429,46 @@
   .sync-note{font-size:12px; color:var(--ink-soft); text-align:center; margin:16px 4px 0; line-height:1.5}
   .offline-badge{font-size:11px; color:var(--ink-soft); border:1px solid var(--line);
     background:var(--surface-2); border-radius:999px; padding:3px 9px; font-weight:700}
+
+/* Mamei · emojis animados nos tiles (Mamou / Sono / Xixi / Coco)
+   Cole no final do <style> do index.html. Não precisa mudar HTML nem JS:
+   usa as classes que já existem (.tile.feed/.sleep/.pee/.poop, .emoji, .active). */
+
+.tile .emoji{position:relative; display:inline-block; will-change:transform}
+.tile .emoji::after{position:absolute; pointer-events:none; font-size:.42em; opacity:0}
+
+/* Mamou — mamadeira inclina e pinga */
+.tile.feed .emoji{transform-origin:50% 85%; animation:emTilt 3.2s ease-in-out infinite}
+.tile.feed .emoji::after{content:"💧"; left:-2px; bottom:-6px; animation:emDrop 3.2s ease-in infinite}
+.tile.feed.active .emoji{animation-duration:1.4s}
+.tile.feed.active .emoji::after{animation-duration:1.4s}
+
+/* Sono — flutua com "z" subindo */
+.tile.sleep .emoji{animation:emFloat 3.8s ease-in-out infinite}
+.tile.sleep .emoji::after{content:"z"; right:-10px; top:-8px; font-family:var(--font-d); font-weight:700; color:var(--sleep); font-size:.5em; animation:emZ 2.4s ease-out infinite}
+.tile.sleep.active .emoji{animation-duration:5s}
+.tile.sleep.active .emoji::after{animation-duration:1.6s}
+
+/* Xixi — gota quica */
+.tile.pee .emoji{transform-origin:50% 100%; animation:emBounce 2.6s cubic-bezier(.3,0,.3,1) infinite .6s}
+
+/* Coco — balança gelatinoso */
+.tile.poop .emoji{transform-origin:50% 100%; animation:emWobble 3s ease-in-out infinite 1.2s}
+
+/* Toque: pulinho extra (a classe .pulse já existe no app) */
+.tile.pulse .emoji{animation:emPop .5s ease}
+
+@keyframes emTilt{0%,55%,100%{transform:rotate(0)}65%{transform:rotate(-18deg)}75%{transform:rotate(10deg)}85%{transform:rotate(-5deg)}}
+@keyframes emDrop{0%,62%{opacity:0;transform:translateY(-4px)}72%{opacity:1}100%{opacity:0;transform:translateY(10px)}}
+@keyframes emFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-5px) rotate(4deg)}}
+@keyframes emZ{0%{opacity:0;transform:translate(0,0) scale(.6)}30%{opacity:1}100%{opacity:0;transform:translate(10px,-18px) scale(1.15)}}
+@keyframes emBounce{0%,60%,100%{transform:translateY(0) scale(1,1)}68%{transform:translateY(0) scale(1.15,.85)}78%{transform:translateY(-8px) scale(.92,1.1)}88%{transform:translateY(0) scale(1.08,.92)}}
+@keyframes emWobble{0%,60%,100%{transform:scale(1,1) rotate(0)}68%{transform:scale(1.12,.88) rotate(-6deg)}78%{transform:scale(.94,1.08) rotate(5deg)}88%{transform:scale(1.04,.96) rotate(-2deg)}}
+@keyframes emPop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+
+@media (prefers-reduced-motion: reduce){
+  .tile .emoji,.tile .emoji::after{animation:none!important}
+}
 </style>
 </head>
 <body>
