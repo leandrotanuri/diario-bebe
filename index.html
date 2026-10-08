@@ -798,7 +798,7 @@ function evView(e,now){
       if(hasSides(e)){
         var o=(e.first||"E")==="E"?["E","D"]:["D","E"];
         var parts=o.filter(function(s){ return sideMs(e,s,now)>0; }).map(function(s){ return s+" "+Math.round(sideMs(e,s,now)/M)+" min"; });
-        v.sub = v.ongoing? (e.run? "mamando · lado "+e.run : "pausada") : parts.join(" · ")+(endSide(e)? " · terminou no "+endSide(e):"");
+        v.sub = v.ongoing? (e.run? "mamando · lado "+e.run : "pausada") : hm(e.ts)+"–"+hm(e.endTs)+" · "+parts.join(" · ")+(endSide(e)? " · terminou no "+endSide(e):"");
       } else { v.title="Mamada"; v.sub = v.ongoing? "desde "+hm(e.ts) : hm(e.ts)+"–"+hm(e.endTs)+(e.detail? " · "+e.detail:""); }
       v.dur=dur(feedMs(e,now)); break;
     case "mamadeira":
@@ -893,7 +893,7 @@ PAGES.hoje=function(){
     var desc="nenhuma ainda";
     if(lf){ var k=K(lf); desc= k==="mamadeira"? "mamadeira"+(lf.ml!=null?" "+lf.ml+" ml":"") : hasSides(lf)? "peito · terminou no "+(endSide(lf)||"?") : (lf.detail? lf.detail.toLowerCase() : "mamada de "+dur(lf.endTs-lf.ts)); }
     var ns=nextSide();
-    html+='<div class="duo"><button class="stat c-pea press" data-a="feedMode" data-v="peito"><span class="k">Última mamada</span><span class="n" data-ago-short="'+(lf?lf.endTs:"")+'">'+(lf? ago(now-lf.endTs).replace("há ","") : "—")+'</span><span class="d">'+esc(desc)+'</span><span class="tag">Começar pelo '+sideName(ns)+'</span></button>';
+    html+='<div class="duo"><button class="stat c-pea press" data-a="feedMode" data-v="peito"><span class="k">Última mamada</span><span class="n" data-ago-short="'+(lf?lf.endTs:"")+'">'+(lf? ago(now-lf.endTs).replace("há ","") : "—")+'</span><span class="d">'+esc(desc)+(lf? '<br>terminou às '+hm(lf.endTs) : '')+'</span><span class="tag">Começar pelo '+sideName(ns)+'</span></button>';
     var ls=lastWhere(function(e){ return e.type==="sleep" && e.endTs; });
     if(ls){
       var awM=Math.round((now-ls.endTs)/M), win=d!=null? wakeWindow(d) : null;
