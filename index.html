@@ -143,6 +143,7 @@
   .minis{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
   .mini{display:flex; align-items:center; justify-content:center; gap:7px; padding:12px 6px; border-radius:18px; border:1px solid var(--line); background:var(--card); font-size:13.5px; font-weight:800}
   .mini .e{font-size:17px; line-height:1}
+  .mini.done{background:var(--but); color:var(--butInk); border-color:transparent}
   .tri{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
   .tri .n{font-size:24px; font-weight:900; line-height:1.15}
   .hr{border-top:1px solid var(--line); padding-top:12px}
@@ -766,6 +767,8 @@ function endSide(e){ if(e.end) return e.end; var d=(e.detail||"").toLowerCase();
 function openFeed(){ for(var i=0;i<S.events.length;i++){ var e=S.events[i]; if(e.type==="feed" && !e.endTs) return e; } return null; }
 function openSleep(){ for(var i=0;i<S.events.length;i++){ var e=S.events[i]; if(e.type==="sleep" && !e.endTs) return e; } return null; }
 function lastWhere(fn){ for(var i=0;i<S.events.length;i++){ if(fn(S.events[i])) return S.events[i]; } return null; }
+function isVitD(e){ return e.type==="note" && e.tag==="Vitamina D"; }
+function vitDToday(){ var t0=sod(Date.now()); return lastWhere(function(e){ return isVitD(e) && e.ts>=t0; }); }
 function lastPeitoEnd(){ var e=lastWhere(function(x){ return x.type==="feed" && x.endTs && K(x)==="peito" && endSide(x); }); return e? endSide(e) : null; }
 function nextSide(){ var end=lastPeitoEnd(); if(!end) return "E"; return S.cfg.sideRule==="outro"? (end==="E"?"D":"E") : end; }
 function sideName(k){ return k==="E"?"esquerdo":"direito"; }
@@ -809,7 +812,7 @@ function evView(e,now){
       v.sub= v.ongoing? "desde "+hm(e.ts) : hm(e.ts)+"–"+hm(e.endTs); v.dur=dur(sleepEnd(e,now)-e.ts); break;
     case "xixi": v.title="Xixi"; v.sub="troca de fralda"; break;
     case "coco": v.title="Cocô"; v.sub= e.color&&COLORS[e.color]? "cocô "+COLORS[e.color][0].toLowerCase() : "troca de fralda"; break;
-    case "nota": v.title=e.tag||"Anotação"; v.sub= (e.note && e.note!==e.tag)? e.note : "anotação"; break;
+    case "nota": if(isVitD(e)) v.e="☀️"; v.title=e.tag||"Anotação"; v.sub= (e.note && e.note!==e.tag)? e.note : isVitD(e)? "dose do dia" : "anotação"; break;
     case "medida": v.title="Medidas"; v.sub=measureText(e)||"—"; break;
   }
   if(e.note && k!=="nota" && k!=="bomba") v.sub += " · "+e.note;
@@ -904,13 +907,13 @@ PAGES.hoje=function(){
     } else html+='<button class="stat c-lav press" data-a="startSleep"><span class="k">Sono</span><span class="n">—</span><span class="d">nenhum sono registrado</span><span class="tag">Toque para iniciar</span></button></div>';
   }
 
-  var ns2=nextSide();
+  var ns2=nextSide(), vd=vitDToday();
   html+='<div class="col" style="gap:10px"><div class="acts">'
     +act("peito", f? "Peito" : "Peito", f? (f.run? "mamando · lado "+f.run : "mamada pausada") : "começar no "+ns2, 'data-a="feedMode" data-v="peito"')
     +act("mamadeira","Mamadeira","registrar ml",'data-a="feedMode" data-v="mamadeira"')
     +act("sono", sl?"Acordou":"Dormir", sl?"encerrar sono":"iniciar sono", sl?'data-a="wake"':'data-a="startSleep"')
     +act("fralda","Fralda","xixi ou cocô",'data-a="sheet" data-v="fralda"')
-    +'</div><div class="minis"><button class="mini press" data-a="feedMode" data-v="bomba"><span class="e">🥛</span>Extrair</button>'
+    +'</div><div class="minis"><button class="mini press'+(vd?' done':'')+'" data-a="vitD"><span class="e">☀️</span>'+(vd?'Vit. D ✓':'Vitamina D')+'</button>'
     +'<button class="mini press" data-a="sheet" data-v="nota"><span class="e">📝</span>Anotar</button>'
     +'<button class="mini press" data-a="sheet" data-v="medidas"><span class="e">⚖️</span>Medidas</button></div></div>';
 
@@ -1182,8 +1185,8 @@ SHEETS.fralda=function(){
 };
 function agoChips(){ return chips([[0,"Agora"],[5,"há 5 min"],[15,"há 15"],[30,"há 30"]], S.agoMin, "agoMin", "fill"); }
 SHEETS.nota=function(){
-  return chips(["Remédio","Banho","Febre","Regurgitou","Choro","Outro"].map(function(x){ return [x,x]; }), S.note.tag, "noteTag")
-    +'<textarea class="inp" id="noteText" placeholder="Ex.: vitamina D, 1 gota" maxlength="300"></textarea>'
+  return chips(["Vitamina D","Remédio","Banho","Febre","Regurgitou","Choro","Outro"].map(function(x){ return [x,x]; }), S.note.tag, "noteTag")
+    +'<textarea class="inp" id="noteText" placeholder="Ex.: paracetamol, 5 gotas" maxlength="300"></textarea>'
     +'<div class="col" style="gap:8px"><div class="lbl">Quando</div>'+agoChips()+'</div>'
     +'<button class="btn" data-a="saveNote">Salvar anotação</button>';
 };
@@ -1239,7 +1242,7 @@ SHEETS.evento=function(){
   if(k==="bomba") html+='<div class="duo"><div class="field"><label for="ev_pE">Esquerdo (ml)</label><input class="inp" id="ev_pE" inputmode="numeric" value="'+(e.E||0)+'"></div><div class="field"><label for="ev_pD">Direito (ml)</label><input class="inp" id="ev_pD" inputmode="numeric" value="'+(e.D||0)+'"></div></div>';
   if(e.type==="sleep") html+='<div class="field"><label>Tipo</label>'+chips([["0","Soneca"],["1","Noturno"]], S.arg.night, "evNight")+'</div>';
   if(e.type==="poop") html+='<div class="field"><label>Cor do cocô</label><div class="chips">'+Object.keys(COLORS).map(function(c){ return '<button class="sw-c" data-a="evColor" data-v="'+c+'" aria-pressed="'+(S.arg.color===c)+'"><i style="background:'+COLORS[c][1]+'"></i>'+COLORS[c][0]+'</button>'; }).join("")+'</div></div>';
-  if(e.type==="note" && k==="nota") html+='<div class="field"><label>Tipo</label>'+chips(["Remédio","Banho","Febre","Regurgitou","Choro","Outro"].map(function(x){ return [x,x]; }), S.arg.tag, "evTag")+'</div>';
+  if(e.type==="note" && k==="nota") html+='<div class="field"><label>Tipo</label>'+chips(["Vitamina D","Remédio","Banho","Febre","Regurgitou","Choro","Outro"].map(function(x){ return [x,x]; }), S.arg.tag, "evTag")+'</div>';
   if(k==="medida") html+='<div class="grid2">'+[["weight","Peso (kg)"],["height","Compr. (cm)"],["head","Perímetro (cm)"]].map(function(m){ return '<div class="field"><label for="ev_'+m[0]+'">'+m[1]+'</label><input class="inp" id="ev_'+m[0]+'" inputmode="decimal" value="'+(e[m[0]]!=null? String(e[m[0]]).replace(".",","):"")+'"></div>'; }).join("")
     +'<div class="field"><label for="ev_date">Data</label><input class="inp" type="date" id="ev_date" value="'+dayKey(e.ts)+'"></div></div>';
   if(k!=="bomba") html+='<div class="field"><label for="ev_note">'+(k==="nota"?"Texto":"Observação")+'</label><textarea class="inp" id="ev_note" style="min-height:64px" placeholder="opcional">'+esc(k==="nota" && e.note===e.tag? "" : e.note||"")+'</textarea></div>';
@@ -1339,6 +1342,8 @@ var A={
     closeSheet(); S.agoMin=0; toast("Troca registrada · "+hm(ts), function(){ ids.forEach(function(i){ store.remove(i); }); });
   },
   noteTag:function(v){ S.note.tag=v; document.querySelectorAll('[data-a="noteTag"]').forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-v")===v); }); },
+  vitD:function(){ var d=vitDToday(); if(d && !window.confirm("Já deu vitamina D hoje às "+hm(d.ts)+". Registrar outra dose?")) return;
+    var id=store.add({type:"note", tag:"Vitamina D", note:"Vitamina D", ts:Date.now()}); toast("Vitamina D registrada", function(){ store.remove(id); }); },
   saveNote:function(){ var t=(byId("noteText").value||"").trim(), ts=Date.now()-S.agoMin*M;
     var id=store.add({type:"note", tag:S.note.tag, note:t||S.note.tag, ts:ts}); closeSheet(); S.agoMin=0; toast("Anotação salva", function(){ store.remove(id); }); },
   measStep:function(v){ var p=v.split("|"), inp=byId("m_"+p[0]), st=+inp.getAttribute("data-step"), dec=+inp.getAttribute("data-dec");
