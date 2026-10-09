@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Mamei">
 <title>Mamei</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/mamei-apple-touch-icon.png">
+<link rel="icon" href="icons/mamei-favicon-32.png" sizes="32x32">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
@@ -1556,7 +1556,7 @@ function toggleReminder(k,el){
 }
 function notify(title,body,tag){
   if(!("Notification" in window) || Notification.permission!=="granted") return;
-  try{ if(navigator.serviceWorker) navigator.serviceWorker.ready.then(function(r){ r.showNotification(title,{body:body, tag:tag, icon:"icons/icon-192.png", badge:"icons/icon-192.png"}); });
+  try{ if(navigator.serviceWorker) navigator.serviceWorker.ready.then(function(r){ r.showNotification(title,{body:body, tag:tag, icon:"icons/mamei-192.png", badge:"icons/mamei-192.png"}); });
     else new Notification(title,{body:body, tag:tag}); }catch(e){}
 }
 function checkReminders(){

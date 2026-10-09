@@ -1,18 +1,18 @@
 /* Service Worker — Mamei
    Cache do "app shell" para funcionar offline e ser instalável.
    Suba a versão (CACHE) sempre que mudar os arquivos, pra forçar atualização. */
-const CACHE = "mamei-v3";
+const CACHE = "mamei-v4";
 const SHELL = [
   "./",
   "./index.html",
   "./firebase-config.js",
   "./manifest.webmanifest",
   "./sounds/shh.mp3",
-  "./icons/icon-192.png",
+  "./icons/mamei-192.png",
   "./icons/logo-256.png",
-  "./icons/icon-512.png",
-  "./icons/icon-maskable-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icons/mamei-512.png",
+  "./icons/mamei-maskable-512.png",
+  "./icons/mamei-apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (e) => {
@@ -63,8 +63,8 @@ self.addEventListener("push", (e) => {
     self.registration.showNotification(data.title, {
       body: data.body,
       tag: data.tag || "push",
-      icon: "./icons/icon-192.png",
-      badge: "./icons/icon-192.png",
+      icon: "./icons/mamei-192.png",
+      badge: "./icons/mamei-192.png",
       data: data
     })
   );
