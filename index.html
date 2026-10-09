@@ -166,8 +166,8 @@
   .emo::before,.emo::after{position:absolute; pointer-events:none; opacity:0; line-height:1}
   .emo.peito i{animation:emBeat 2.4s ease-in-out infinite}
   .emo.peito::after{content:"💗"; right:-6px; top:-6px; font-size:11px; animation:emZ 2.4s ease-out infinite}
-  .emo.mamadeira i{transform-origin:50% 80%; animation:emTilt 2.8s ease-in-out infinite .4s}
-  .emo.mamadeira::after{content:"💧"; left:2px; bottom:-4px; font-size:9px; animation:emDrop 2.8s ease-in infinite .4s}
+  .emo.mamadeira i{transform-origin:30% 70%; animation:emTiltR 2.8s ease-in-out infinite .4s}
+  .emo.mamadeira::after{content:"💧"; right:-3px; top:5px; font-size:9px; animation:emDrop 2.8s ease-in infinite .4s}
   .emo.sono i{animation:emFloat 3.6s ease-in-out infinite}
   .emo.sono::before,.emo.sono::after{content:"z"; font-weight:900; color:var(--lavInk)}
   .emo.sono::after{right:-8px; top:-8px; font-size:11px; animation:emZ 2.2s ease-out infinite}
@@ -178,6 +178,7 @@
   @keyframes emTilt{0%,100%{transform:rotate(0)}20%{transform:rotate(-16deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}80%{transform:rotate(0)}}
   @keyframes emFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-4px) rotate(4deg)}}
   @keyframes emZ{0%{opacity:0;transform:translate(0,0) scale(.6)}30%{opacity:1}100%{opacity:0;transform:translate(10px,-16px) scale(1.1)}}
+  @keyframes emTiltR{0%,100%{transform:rotate(0)}20%{transform:rotate(16deg)}40%{transform:rotate(-8deg)}60%{transform:rotate(6deg)}80%{transform:rotate(0)}}
   @keyframes emSwing{0%,100%{transform:rotate(0)}25%{transform:rotate(12deg)}75%{transform:rotate(-12deg)}}
   @keyframes emDrop{0%,60%{opacity:0;transform:translateY(-4px)}75%{opacity:1}100%{opacity:0;transform:translateY(8px)}}
 
@@ -1138,12 +1139,13 @@ function renderSheet(){
   if(!S.sheet) return;
   var fn=SHEETS[S.sheet]; if(!fn){ closeSheet(); return; }
   var out=fn(); if(out==null){ closeSheet(); return; }
-  byId("sheetTitle").textContent=TITLES[S.sheet]||"";
+  byId("sheetTitle").textContent= S.sheet==="feed"? (S.feedMode==="peito"? "Peito" : "Mamadeira") : (TITLES[S.sheet]||"");
   byId("sheetBody").innerHTML=out; tick();
 }
 var SHEETS={};
 SHEETS.feed=function(){
-  var html=seg([["peito","Peito"],["mamadeira","Mamadeira"],["bomba","Extraído"]], S.feedMode, "feedSeg");
+  // Peito abre sozinho; Mamadeira e Extraído ficam juntos (é tudo leite no frasco)
+  var html= S.feedMode==="peito"? "" : seg([["mamadeira","Mamadeira"],["bomba","Extraído"]], S.feedMode, "feedSeg");
   if(S.feedMode==="peito"){
     var f=openFeed(), ns=nextSide(), lpe=lastPeitoEnd(), now=Date.now();
     var hint= f? "Mamada começou às "+hm(f.ts) : lpe? "Sugestão: começar pelo "+ns+" · a última terminou "+(ns===lpe?"nele":"no "+lpe) : "Toque no lado em que vai começar";
