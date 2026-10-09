@@ -1,7 +1,7 @@
 /* Service Worker — Mamei
    Cache do "app shell" para funcionar offline e ser instalável.
    Suba a versão (CACHE) sempre que mudar os arquivos, pra forçar atualização. */
-const CACHE = "mamei-v2";
+const CACHE = "mamei-v3";
 const SHELL = [
   "./",
   "./index.html",
