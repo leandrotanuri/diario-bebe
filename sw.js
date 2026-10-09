@@ -1,7 +1,7 @@
 /* Service Worker — Mamei
    Cache do "app shell" para funcionar offline e ser instalável.
    Suba a versão (CACHE) sempre que mudar os arquivos, pra forçar atualização. */
-const CACHE = "mamei-v1";
+const CACHE = "mamei-v2";
 const SHELL = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const SHELL = [
   "./manifest.webmanifest",
   "./sounds/shh.mp3",
   "./icons/icon-192.png",
+  "./icons/logo-256.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png"

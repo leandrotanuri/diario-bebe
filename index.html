@@ -1116,7 +1116,7 @@ PAGES.familia=function(){
     +((deferredPrompt||needsIOSInstall())? '<button data-a="install"><span class="e">📲</span>Instalar na tela inicial</button>' : '')
     +'<button data-a="onboarding"><span class="e">🎓</span>Ver o tutorial de novo</button>'
     +'<button data-a="sheet" data-v="apagar" style="color:var(--danger)"><span class="e">🗑</span>Apagar todo o histórico</button></div>';
-  html+='<div class="foot">'+(S.mode==="sync"? '<span class="badge" style="color:var(--minInk)">● Sincronizado</span>' : '<span class="badge">◌ Modo offline</span>')
+  html+='<div class="foot"><img src="icons/logo-256.png" alt="Mamei" width="44" height="44" style="border-radius:12px;display:block;margin:0 auto 8px">'+(S.mode==="sync"? '<span class="badge" style="color:var(--minInk)">● Sincronizado</span>' : '<span class="badge">◌ Modo offline</span>')
     +'<br>Os registros aparecem em todos os celulares que abrem o link da família.</div>';
   return '<div class="pg" style="gap:16px">'+html+'</div>';
 };
@@ -1662,7 +1662,7 @@ function maybeOnboarding(){
 function showOnboarding(){ OB={step:0, name:S.cfg.name||"", birth:S.cfg.birth||"", sex:S.cfg.sex}; byId("ob").hidden=false; renderOb(); }
 function renderOb(){
   var s=OB.step, body='';
-  if(s===0) body='<div class="blobs"><i style="left:20px;top:20px;width:150px;height:150px;background:var(--lav)"></i><i style="left:130px;top:60px;width:120px;height:120px;background:var(--pea)"></i><i style="left:200px;top:0;width:90px;height:90px;background:var(--min)"></i></div>'
+  if(s===0) body='<img src="icons/logo-256.png" alt="" width="132" height="132" style="border-radius:34px;box-shadow:0 10px 30px rgba(150,80,40,.15)">'
     +'<h1>Bem-vindos ao Mamei</h1><p>O diário do seu bebê. Mamadas, sono e fraldas anotados com um toque, e acompanhados por quem cuida junto.</p>';
   if(s===1) body='<h2>Como vamos chamar o bebê?</h2><input class="inp" id="ob_name" placeholder="Nome" maxlength="28" value="'+esc(OB.name)+'" style="font-size:22px;font-weight:800;padding:16px 18px;border-radius:20px">'
     +'<div class="lbl" style="font-size:14px">Data de nascimento</div><input class="inp" type="date" id="ob_birth" value="'+esc(OB.birth)+'" style="font-size:17px;padding:14px 18px;border-radius:20px">'
