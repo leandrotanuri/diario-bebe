@@ -811,7 +811,7 @@ function evView(e,now){
     case "bomba": v.title="Extração"; v.sub="E "+(e.E||0)+" ml · D "+(e.D||0)+" ml"; v.dur=((e.E||0)+(e.D||0))+" ml"; break;
     case "sono":
       v.ongoing=!e.endTs; v.title= (e.night!=null? e.night : isNight(e.ts))? "Sono noturno":"Soneca";
-      v.sub= v.ongoing? "desde "+hm(e.ts) : hm(e.ts)+"–"+hm(e.endTs); v.dur=dur(sleepEnd(e,now)-e.ts); break;
+      v.sub= v.ongoing? "desde "+hm(e.ts) : "dormiu "+hm(e.ts); if(!v.ongoing) v.subB="Acordou "+hm(e.endTs); v.dur=dur(sleepEnd(e,now)-e.ts); break;
     case "xixi": v.title="Xixi"; v.sub="troca de fralda"; break;
     case "coco": v.title="Cocô"; v.sub= e.color&&COLORS[e.color]? "cocô "+COLORS[e.color][0].toLowerCase() : "troca de fralda"; break;
     case "nota": if(isVitD(e)) v.e="☀️"; v.title=e.tag||"Anotação"; v.sub= (e.note && e.note!==e.tag)? e.note : isVitD(e)? "dose do dia" : "anotação"; break;
@@ -820,6 +820,7 @@ function evView(e,now){
   if(e.note && k!=="nota" && k!=="bomba") v.sub += " · "+e.note;
   return v;
 }
+function subHtml(v){ return (v.subB? '<b style="font-weight:700">'+esc(v.subB)+'</b> · ' : '')+esc(v.sub); }
 function measureText(e){ var p=[]; if(e.weight!=null) p.push(nf(e.weight, e.weight<10?2:1)+" kg"); if(e.height!=null) p.push(nf(e.height,1)+" cm"); if(e.head!=null) p.push("PC "+nf(e.head,1)+" cm"); return p.join(" · "); }
 
 /* =====================================================================
@@ -887,7 +888,7 @@ function onData(){ render(); if(S.sheet==="sono" && !openSleep()) closeSheet(); 
 function renderTab(){ var fn=PAGES[S.tab]||PAGES.hoje; byId("app").innerHTML=fn(); tick(); }
 
 function eventRow(e,now){ var v=evView(e,now);
-  return '<button class="li" data-a="openEv" data-v="'+esc(v.id)+'"><span class="sq c-'+v.c+'">'+v.e+'</span><span class="b"><span class="t" style="display:block">'+esc(v.title)+'</span><span class="s" style="display:block">'+esc(v.sub)+'</span></span>'
+  return '<button class="li" data-a="openEv" data-v="'+esc(v.id)+'"><span class="sq c-'+v.c+'">'+v.e+'</span><span class="b"><span class="t" style="display:block">'+esc(v.title)+'</span><span class="s" style="display:block">'+subHtml(v)+'</span></span>'
     +'<span class="r"><b>'+hm(v.ts)+'</b><small data-ago="'+v.ts+'">'+ago(now-v.ts)+'</small></span></button>'; }
 
 var PAGES={};
@@ -978,7 +979,7 @@ PAGES.diario=function(){
     if(!g.length) html+='<div class="empty">Nenhum registro neste dia.</div>';
     else html+='<div class="tl">'+g.map(function(e){ var v=evView(e,now);
       return '<button class="tl-i t-'+v.c+(v.ongoing?" ongoing":"")+'" data-a="openEv" data-v="'+esc(v.id)+'" style="color:var(--'+(v.c==="gray"?"ink2":v.c+"Ink")+')"><span class="tl-time num" style="color:var(--ink)">'+hm(v.ts)+'</span>'
-        +'<span class="tl-rail"><i></i><b></b><i></i></span><span class="tl-card c-'+v.c+'"><span class="e">'+v.e+'</span><span class="b"><span class="t" style="display:block">'+esc(v.title)+'</span><span class="s" style="display:block">'+esc(v.sub)+'</span></span><span class="d">'+esc(v.dur)+'</span></span></button>'; }).join("")+'</div>';
+        +'<span class="tl-rail"><i></i><b></b><i></i></span><span class="tl-card c-'+v.c+'"><span class="e">'+v.e+'</span><span class="b"><span class="t" style="display:block">'+esc(v.title)+'</span><span class="s" style="display:block">'+subHtml(v)+'</span></span><span class="d">'+esc(v.dur)+'</span></span></button>'; }).join("")+'</div>';
   } else {
     var all=allEvents(), rows='';
     [6,5,4,3,2,1,0].forEach(function(i){ var ds=dayStart(mid,i), de=dayStart(mid,i-1), bl='';
@@ -1255,7 +1256,7 @@ SHEETS.resumo=function(){
 SHEETS.evento=function(){
   var e=findEv(S.arg.id); if(!e) return null;
   var both=S.arg.both, v=evView(both? both : e), k=K(e), sess=(e.type==="feed"&&k==="peito")||e.type==="sleep";
-  var html='<div class="evhead c-'+v.c+'"><span class="sq">'+v.e+'</span><div style="flex:1;min-width:0"><div class="t">'+esc(v.title)+'</div><div class="s">'+esc(dayLbl(e.ts))+' · '+esc(v.sub)+'</div></div></div>';
+  var html='<div class="evhead c-'+v.c+'"><span class="sq">'+v.e+'</span><div style="flex:1;min-width:0"><div class="t">'+esc(v.title)+'</div><div class="s">'+esc(dayLbl(e.ts))+' · '+subHtml(v)+'</div></div></div>';
   html+=timeBox("ev_ts", sess?"Início":"Horário", e.ts);
   if(sess) html+=timeBox("ev_end","Fim (vazio = em andamento)", e.endTs);
   if(k==="peito" && e.endTs && hasSides(e)) html+='<div class="duo"><div class="field"><label for="ev_E">Esquerdo (min)</label><input class="inp" id="ev_E" inputmode="numeric" value="'+Math.round(sideMs(e,"E",Date.now())/M)+'"></div><div class="field"><label for="ev_D">Direito (min)</label><input class="inp" id="ev_D" inputmode="numeric" value="'+Math.round(sideMs(e,"D",Date.now())/M)+'"></div></div>';
