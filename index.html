@@ -603,7 +603,7 @@ var S={
   cfg:{ name:"", birth:null, sex:null, stock:0, milestones:{}, vaccines:{}, sideRule:"mesmo" },
   members:{},
   diarioView:"lista", dayIdx:0, metric:"kg", range:"7", allVac:false,
-  bottle:{ml:90, milk:"materno", desc:true}, pump:{E:60,D:50}, diaper:{kind:"xixi", color:null}, agoMin:0,
+  bottle:{ml:90, milk:"materno", desc:true}, pump:{ml:110}, diaper:{kind:"xixi", color:null}, agoMin:0,
   note:{tag:"Remédio"}, feedMode:"peito"
 };
 var THEME=(function(){ try{ return localStorage.getItem("mamei.theme")||"auto"; }catch(e){ return "auto"; } })();
@@ -808,7 +808,7 @@ function evView(e,now){
       v.dur=dur(feedMs(e,now)); break;
     case "mamadeira":
       v.title="Mamadeira"; v.sub=(e.ml!=null? e.ml+" ml · ":"")+(e.milk==="formula"||/f[óo]rmula/i.test(e.detail||"")? "fórmula":"leite materno"); v.dur=e.ml!=null? e.ml+" ml":""; break;
-    case "bomba": v.title="Extração"; v.sub="E "+(e.E||0)+" ml · D "+(e.D||0)+" ml"; v.dur=((e.E||0)+(e.D||0))+" ml"; break;
+    case "bomba": v.title="Extração"; v.sub="leite extraído"; v.dur=((e.E||0)+(e.D||0))+" ml"; break;
     case "sono":
       v.ongoing=!e.endTs; v.title= (e.night!=null? e.night : isNight(e.ts))? "Sono noturno":"Soneca";
       v.sub= v.ongoing? "desde "+hm(e.ts) : "dormiu "+hm(e.ts); if(!v.ongoing) v.subB="Acordou "+hm(e.endTs); v.dur=dur(sleepEnd(e,now)-e.ts); break;
@@ -1182,8 +1182,8 @@ SHEETS.feed=function(){
       +(b.milk==="materno"? '<div class="togrow"><div style="flex:1;font-size:14px;font-weight:700">Descontar do estoque <span class="muted">('+(S.cfg.stock||0)+' ml)</span></div><button class="switch" role="switch" aria-label="Descontar do estoque" aria-checked="'+b.desc+'" data-a="bottleDesc"></button></div>' : '')
       +'<button class="btn pea" data-a="saveBottle">Registrar mamadeira</button></div>';
   } else {
-    var p=S.pump, tot=p.E+p.D;
-    html+='<div class="duo">'+[["E","Esquerdo"],["D","Direito"]].map(function(s){ return '<div class="pump"><div class="cap" style="font-size:13px;font-weight:800">'+s[1]+'</div><div class="v num">'+p[s[0]]+'<span class="cap" style="font-size:14px"> ml</span></div><div class="row" style="gap:8px"><button class="rnd sm" data-a="pump" data-v="'+s[0]+'-">−</button><button class="rnd sm" data-a="pump" data-v="'+s[0]+'+">+</button></div></div>'; }).join("")+'</div>'
+    var tot=S.pump.ml;
+    html+='<div class="center"><div class="stepper"><button class="rnd" data-a="pump" data-v="-10" aria-label="Menos">−</button><div class="col" style="align-items:center"><div class="num t-pea" style="font-size:60px;font-weight:900;line-height:1">'+tot+'</div><div class="cap" style="font-size:14px;font-weight:800">ml extraído</div></div><button class="rnd" data-a="pump" data-v="10" aria-label="Mais">+</button></div></div>'
       +'<div class="totbar c-pea"><span>Total: '+tot+' ml</span><span>Estoque vai para '+((S.cfg.stock||0)+tot)+' ml</span></div>'
       +'<button class="btn pea" data-a="savePump">Adicionar ao estoque</button>'
       +(S.cfg.stock>0? '<button class="link" data-a="resetStock" style="align-self:center">Zerar estoque</button>':'');
@@ -1193,8 +1193,7 @@ SHEETS.feed=function(){
 SHEETS.sono=function(){
   var sl=openSleep(); if(!sl) return null;
   var night=sl.night!=null? sl.night : isNight(sl.ts), nm=(SOUNDS.filter(function(s){ return s[0]===NOISE.kind; })[0]||SOUNDS[0])[1];
-  return '<div class="center"><div class="breath c-lav"><div style="font-size:13px;font-weight:800">'+(night?"Sono noturno":"Soneca")+'</div><div class="num" style="font-size:46px;font-weight:900;line-height:1" data-live="sleepTimer"></div><div style="font-size:13px;font-weight:700">desde '+hm(sl.ts)+'</div></div>'
-    +startBox("Dormiu às",sl.ts)
+  return '<div class="center">'+startBox("Dormiu às",sl.ts)+'<div class="breath c-lav"><div style="font-size:13px;font-weight:800">'+(night?"Sono noturno":"Soneca")+'</div><div class="num" style="font-size:46px;font-weight:900;line-height:1" data-live="sleepTimer"></div><div style="font-size:13px;font-weight:700">desde '+hm(sl.ts)+'</div></div>'
     +chips([["0","Soneca"],["1","Noturno"]], night?"1":"0", "sleepKind")
     +'<button class="btn" data-a="toggleNoise" style="background:var(--card);color:var(--lavInk);border:1px solid var(--line);font-weight:800">🎵 '+(NOISE.playing? "Parar ruído ("+nm+")" : "Tocar ruído "+nm.toLowerCase())+'</button>'
     +'<button class="btn lav" data-a="wake" style="font-size:16px;padding:16px">Acordou</button></div>';
@@ -1262,7 +1261,7 @@ SHEETS.evento=function(){
   if(k==="peito" && e.endTs && hasSides(e)) html+='<div class="duo"><div class="field"><label for="ev_E">Esquerdo (min)</label><input class="inp" id="ev_E" inputmode="numeric" value="'+Math.round(sideMs(e,"E",Date.now())/M)+'"></div><div class="field"><label for="ev_D">Direito (min)</label><input class="inp" id="ev_D" inputmode="numeric" value="'+Math.round(sideMs(e,"D",Date.now())/M)+'"></div></div>';
   if(k==="peito" && !hasSides(e)) html+='<div class="field"><label>Detalhe</label>'+chips(["Peito esq.","Peito dir.","Ambos"].map(function(x){ return [x,x,"pea"]; }), S.arg.detail, "evDetail")+'</div>';
   if(k==="mamadeira") html+='<div class="field"><label for="ev_ml">Quantidade (ml)</label><input class="inp" id="ev_ml" inputmode="numeric" value="'+(e.ml!=null?e.ml:"")+'"></div><div class="field"><label>Leite</label>'+chips([["materno","Leite materno","pea"],["formula","Fórmula","pea"]], S.arg.milk, "evMilk", "fill")+'</div>';
-  if(k==="bomba") html+='<div class="duo"><div class="field"><label for="ev_pE">Esquerdo (ml)</label><input class="inp" id="ev_pE" inputmode="numeric" value="'+(e.E||0)+'"></div><div class="field"><label for="ev_pD">Direito (ml)</label><input class="inp" id="ev_pD" inputmode="numeric" value="'+(e.D||0)+'"></div></div>';
+  if(k==="bomba") html+='<div class="field"><label for="ev_pE">Quantidade (ml)</label><input class="inp" id="ev_pE" inputmode="numeric" value="'+((e.E||0)+(e.D||0))+'"></div>';
   if(e.type==="sleep") html+='<div class="field"><label>Tipo</label>'+chips([["0","Soneca"],["1","Noturno"]], S.arg.night, "evNight")+'</div>';
   if(e.type==="poop") html+='<div class="field"><label>Cor do cocô</label><div class="chips">'+Object.keys(COLORS).map(function(c){ return '<button class="sw-c" data-a="evColor" data-v="'+c+'" aria-pressed="'+(S.arg.color===c)+'"><i style="background:'+COLORS[c][1]+'"></i>'+COLORS[c][0]+'</button>'; }).join("")+'</div></div>';
   if(e.type==="note" && k==="nota") html+='<div class="field"><label>Tipo</label>'+chips(["Vitamina D","Remédio","Banho","Febre","Regurgitou","Choro","Outro"].map(function(x){ return [x,x]; }), S.arg.tag, "evTag")+'</div>';
@@ -1349,10 +1348,11 @@ var A={
     if(dec) saveCfg({stock:Math.max(0,prev-b.ml)});
     closeSheet(); toast("Mamadeira "+b.ml+" ml registrada", function(){ store.remove(id); if(dec) saveCfg({stock:prev}); });
   },
-  pump:function(v){ var k=v.charAt(0), s=v.charAt(1)==="+"?10:-10; S.pump[k]=Math.max(0,Math.min(500,S.pump[k]+s)); renderSheet(); },
+  pump:function(v){ S.pump.ml=Math.max(0,Math.min(1000,S.pump.ml+(+v))); renderSheet(); },
   savePump:function(){
-    var p=S.pump, tot=p.E+p.D; if(!tot){ toast("Informe quantos ml"); return; }
-    var prev=S.cfg.stock||0, id=store.add({type:"note", kind:"pump", ts:Date.now(), E:p.E, D:p.D, note:"Extraiu "+tot+" ml (E "+p.E+" · D "+p.D+")"});
+    var tot=S.pump.ml; if(!tot){ toast("Informe quantos ml"); return; }
+    // total fica em E (D=0) pra continuar somando igual aos registros antigos
+    var prev=S.cfg.stock||0, id=store.add({type:"note", kind:"pump", ts:Date.now(), E:tot, D:0, note:"Extraiu "+tot+" ml"});
     saveCfg({stock:prev+tot}); closeSheet(); toast("+"+tot+" ml no estoque", function(){ store.remove(id); saveCfg({stock:prev}); });
   },
   resetStock:function(){ if(window.confirm("Zerar o estoque de leite?")){ saveCfg({stock:0}); renderSheet(); } },
@@ -1466,7 +1466,7 @@ function saveEv(){
   }
   if(k==="peito" && !hasSides(e)) p.detail=S.arg.detail||"";
   if(k==="mamadeira"){ var ml=parseInt((byId("ev_ml").value||"").replace(/\D/g,""),10); p.ml=isNaN(ml)?null:ml; p.milk=S.arg.milk; p.detail=S.arg.milk==="formula"?"Fórmula":"Mamadeira"; p.endTs=ts; }
-  if(k==="bomba"){ var pe=parseInt(byId("ev_pE").value,10)||0, pd=parseInt(byId("ev_pD").value,10)||0, diff=(pe+pd)-((e.E||0)+(e.D||0)); p.E=pe; p.D=pd; p.note="Extraiu "+(pe+pd)+" ml (E "+pe+" · D "+pd+")"; if(diff) saveCfg({stock:Math.max(0,(S.cfg.stock||0)+diff)}); }
+  if(k==="bomba"){ var pe=parseInt(byId("ev_pE").value,10)||0, diff=pe-((e.E||0)+(e.D||0)); p.E=pe; p.D=0; p.note="Extraiu "+pe+" ml"; if(diff) saveCfg({stock:Math.max(0,(S.cfg.stock||0)+diff)}); }
   if(e.type==="sleep") p.night=S.arg.night==="1";
   if(e.type==="poop") p.color=S.arg.color||null;
   if(k==="nota"){ p.tag=S.arg.tag; var tx=byId("ev_note").value.trim(); p.note=tx||S.arg.tag; }
@@ -1735,7 +1735,16 @@ setInterval(function(){
   var busy=document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
   if(!busy) renderTab();
 }, 30000);
-if("serviceWorker" in navigator) window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js",{scope:"./"}).catch(function(e){ console.warn("SW",e); }); });
+if("serviceWorker" in navigator){
+  // Versão nova publicada: o SW novo assume e a página recarrega sozinha (no iPhone o app instalado
+  // costuma ficar parado na memória e nunca recarregar). Se tiver uma tela aberta, espera fechar.
+  var hadSW=!!navigator.serviceWorker.controller, swReload=false;
+  navigator.serviceWorker.addEventListener("controllerchange", function(){ if(!hadSW){ hadSW=true; return; } swReload=true; if(!S.sheet) location.reload(); });
+  setInterval(function(){ if(swReload && !S.sheet) location.reload(); }, 1000);
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js",{scope:"./"}).then(function(reg){
+    document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") reg.update().catch(function(){}); });
+  }).catch(function(e){ console.warn("SW",e); }); });
+}
 })();
 </script>
 </body>
