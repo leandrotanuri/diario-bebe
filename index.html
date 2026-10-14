@@ -314,6 +314,7 @@
   .tbox{display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:18px; background:var(--card); border:1px solid var(--line)}
   .tbox .inp{font-size:22px; font-weight:900; border:0; padding:0; background:none; width:100%; min-width:0}
   .tbox .ms{font-size:13px; font-weight:800; padding:10px 10px; border-radius:12px; border:0; background:var(--card2); color:var(--ink); flex:none}
+  .tbox.st{width:100%; padding:8px 10px; gap:6px} .tbox.st .inp{font-size:20px} .tbox.st .ms{padding:10px 7px}
   .qr{width:196px; height:196px; border-radius:24px; background:#fff; display:grid; place-items:center; padding:14px; border:1px solid var(--line)}
   .qr img,.qr canvas{width:168px!important; height:168px!important}
   .linkbox{width:100%; display:flex; align-items:center; gap:8px; padding:6px 6px 6px 14px; border-radius:16px; background:var(--card); border:1px solid var(--line)}
@@ -855,6 +856,24 @@ function startSleep(){
 }
 function wake(){ var sl=openSleep(); if(!sl) return; var now=Date.now(); store.update(sl.id,{endTs:now}); closeSheet();
   toast("Dormiu "+dur(now-sl.ts), function(){ store.update(sl.id,{endTs:null}); }); }
+// Ajusta o início de um sono/mamada em andamento (esqueceu de apertar na hora)
+function shiftStart(e,newTs){
+  var now=Date.now(); if(newTs>now+60000) newTs-=D; if(newTs>now) newTs=now;
+  var delta=e.ts-newTs; if(!delta) return;
+  if(delta<-D || delta>D){ toast("Horário inválido"); return; }
+  var p={ts:newTs}, old={ts:e.ts};
+  if(e.type==="feed" && hasSides(e)){
+    // o tempo a mais (ou a menos) vai pro lado em que começou
+    var k=e.first||e.run||"E";
+    if(e.run===k && e.seg){ p.seg=e.seg-delta; old.seg=e.seg; if(p.seg>now){ toast("Não dá pra começar depois de agora"); return; } }
+    else { p[k]=(e[k]||0)+delta; old[k]=e[k]||0; if(p[k]<0){ toast("Não dá pra começar tão tarde"); return; } }
+  }
+  store.update(e.id,p);
+  toast((e.type==="sleep"?"Dormiu às ":"Começou às ")+hm(newTs), function(){ store.update(e.id,old); });
+}
+function startBox(label,ts){ return '<div class="tbox st"><div style="flex:1;min-width:0"><div class="lbl">'+label+'</div><input class="inp num" id="st_in" inputmode="numeric" maxlength="5" placeholder="hh:mm" value="'+hm(ts)+'" aria-label="'+label+'"></div>'
+  +[5,15,30].map(function(m){ return '<button class="ms" data-a="startBack" data-v="'+m+'" aria-label="Começou '+m+' minutos antes">−'+m+'</button>'; }).join("")+'</div>'; }
+function liveOpen(){ return S.sheet==="sono"? openSleep() : S.sheet==="feed" && S.feedMode==="peito"? openFeed() : null; }
 
 /* =====================================================================
    Páginas
@@ -1149,7 +1168,7 @@ SHEETS.feed=function(){
   if(S.feedMode==="peito"){
     var f=openFeed(), ns=nextSide(), lpe=lastPeitoEnd(), now=Date.now();
     var hint= f? "Mamada começou às "+hm(f.ts) : lpe? "Sugestão: começar pelo "+ns+" · a última terminou "+(ns===lpe?"nele":"no "+lpe) : "Toque no lado em que vai começar";
-    html+='<div class="center"><div class="hint c-pea">'+hint+'</div><div class="big-n" data-live="feedTotal"></div><div class="sides">'
+    html+='<div class="center">'+(f? startBox("Começou às",f.ts) : '<div class="hint c-pea">'+hint+'</div>')+'<div class="big-n" data-live="feedTotal"></div><div class="sides">'
       +["E","D"].map(function(k){ var run=f&&f.run===k, sug=!f&&k===ns, ms=f? sideMs(f,k,now) : 0;
         var st= run? "mamando" : sug? "sugerido" : (f&&ms>0)? "pausado" : "toque p/ iniciar";
         return '<div class="side'+(run?" run":"")+(sug?" sug":"")+'">'+(run?'<span class="pulse"></span>':'')+'<button data-a="tapSide" data-v="'+k+'" aria-label="Lado '+sideName(k)+'"><span class="k">'+k+'</span><span class="tm num" data-live="side'+k+'"></span><span class="st">'+st+'</span></button></div>'; }).join("")
@@ -1174,6 +1193,7 @@ SHEETS.sono=function(){
   var sl=openSleep(); if(!sl) return null;
   var night=sl.night!=null? sl.night : isNight(sl.ts), nm=(SOUNDS.filter(function(s){ return s[0]===NOISE.kind; })[0]||SOUNDS[0])[1];
   return '<div class="center"><div class="breath c-lav"><div style="font-size:13px;font-weight:800">'+(night?"Sono noturno":"Soneca")+'</div><div class="num" style="font-size:46px;font-weight:900;line-height:1" data-live="sleepTimer"></div><div style="font-size:13px;font-weight:700">desde '+hm(sl.ts)+'</div></div>'
+    +startBox("Dormiu às",sl.ts)
     +chips([["0","Soneca"],["1","Noturno"]], night?"1":"0", "sleepKind")
     +'<button class="btn" data-a="toggleNoise" style="background:var(--card);color:var(--lavInk);border:1px solid var(--line);font-weight:800">🎵 '+(NOISE.playing? "Parar ruído ("+nm+")" : "Tocar ruído "+nm.toLowerCase())+'</button>'
     +'<button class="btn lav" data-a="wake" style="font-size:16px;padding:16px">Acordou</button></div>';
@@ -1317,6 +1337,7 @@ var A={
   discardFeed:discardFeed,
   startSleep:startSleep,
   wake:function(v,el,ev){ ev.stopPropagation(); wake(); },
+  startBack:function(v){ var e=liveOpen(); if(e) shiftStart(e, e.ts-(+v)*M); },
   sleepKind:function(v){ var s=openSleep(); if(s) store.update(s.id,{night:v==="1"}); },
   bottle:function(v){ S.bottle.ml=Math.max(10,Math.min(400,S.bottle.ml+(+v))); renderSheet(); },
   milk:function(v){ S.bottle.milk=v; renderSheet(); },
@@ -1416,8 +1437,14 @@ document.addEventListener("click", function(ev){
 });
 document.addEventListener("input", function(ev){
   if(ev.target.id==="vol"){ NOISE.vol=+ev.target.value; saveNoise(); if(NODES && AC) NODES.g.gain.setTargetAtTime(noiseGain(), AC.currentTime, .05); }
-  if(ev.target.id==="ev_ts" || ev.target.id==="ev_end"){ var d=ev.target.value.replace(/\D/g,"").slice(0,4); ev.target.value= d.length>=3? d.slice(0,2)+":"+d.slice(2) : d; }
+  if(ev.target.id==="ev_ts" || ev.target.id==="ev_end" || ev.target.id==="st_in"){ var d=ev.target.value.replace(/\D/g,"").slice(0,4); ev.target.value= d.length>=3? d.slice(0,2)+":"+d.slice(2) : d; }
 });
+document.addEventListener("change", function(ev){
+  if(ev.target.id!=="st_in") return; var e=liveOpen(); if(!e) return;
+  var t=parseT(ev.target.value, Date.now()); if(t==null){ toast("Horário inválido. Use hh:mm"); ev.target.value=hm(e.ts); return; }
+  shiftStart(e,t);
+});
+document.addEventListener("keydown", function(e){ if(e.key==="Enter" && e.target.id==="st_in") e.target.blur(); });
 document.addEventListener("keydown", function(e){ if(e.key==="Escape"){ if(!byId("light").hidden) lightClose(); else if(S.sheet) closeSheet(); } });
 
 function parseT(s,baseTs){ s=(s||"").trim(); var m=s.match(/^(\d{1,2}):?(\d{0,2})$/); if(!m) return null; var h=+m[1], mm=m[2]===""?0:+m[2]; if(h>23||mm>59) return null;
