@@ -484,6 +484,7 @@ function ic(n,sz){ sz=sz||22; var p='';
     case "crescer": p='<path d="M5 20v-5M10 20v-9M15 20v-6M20 20V5"/>'; break;
     case "calma": p='<path d="M5 10v4M9.5 6v12M14.5 4v16M19 9v6"/>'; break;
     case "familia": p='<circle cx="9" cy="12" r="5.5"/><circle cx="16" cy="12" r="5.5"/>'; break;
+    case "dicas": p='<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M3.5 12H6M18 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"/>'; break;
     case "play": p='<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>'; break;
     case "pause": p='<rect x="6.5" y="5" width="4" height="14" rx="1.5" fill="currentColor" stroke="none"/><rect x="13.5" y="5" width="4" height="14" rx="1.5" fill="currentColor" stroke="none"/>'; break;
     case "check": p='<path d="M5 12.5l4.5 4.5L19 7.5" stroke-width="3"/>'; break;
@@ -495,6 +496,9 @@ function emo(k){ var e={peito:"🤱",mamadeira:"🍼",sono:"😴",fralda:"👶"}
 
 // ---------- idade, janela de sono (mesma tabela do app atual) ----------
 function ageDays(){ if(!S.cfg.birth) return null; var d=Math.floor((Date.now()-new Date(S.cfg.birth+"T00:00:00").getTime())/D); return d<0?0:d; }
+function monthsOldB(){ if(!S.cfg.birth) return null; var b=new Date(S.cfg.birth+"T00:00:00"), n=new Date(); var m=(n.getFullYear()-b.getFullYear())*12+(n.getMonth()-b.getMonth()); if(n.getDate()<b.getDate()) m--; return m<0?0:m; }
+function monthiToday(){ if(!S.cfg.birth) return 0; var b=new Date(S.cfg.birth+"T00:00:00"), n=new Date(); var last=new Date(n.getFullYear(),n.getMonth()+1,0).getDate(); var tgt=Math.min(b.getDate(),last); if(n.getDate()!==tgt) return 0; var m=monthsOldB(); return m>=1?m:0; }
+function monthLbl(m){ if(m<12) return m+(m===1?" mês":" meses"); var y=Math.floor(m/12), r=m%12; return y+(y===1?" ano":" anos")+(r?" e "+r+" m":""); }
 function wakeWindow(days){
   if(days<28) return [40,60];
   var w=days/7; if(w<8) return [60,90]; if(w<13) return [75,105]; if(w<17) return [90,120];
@@ -879,13 +883,14 @@ function liveOpen(){ return S.sheet==="sono"? openSleep() : S.sheet==="feed" && 
 /* =====================================================================
    Páginas
    ===================================================================== */
-var TABS=[["hoje","Hoje"],["diario","Diário"],["crescer","Crescer"],["calma","Calma"],["familia","Família"]];
+var TABS=[["hoje","Hoje"],["diario","Diário"],["crescer","Crescer"],["calma","Calma"],["dicas","Dicas"],["familia","Família"]];
 function renderTabbar(){
   byId("tabbar").innerHTML=TABS.map(function(t){ return '<button data-a="tab" data-v="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'><span class="pill">'+ic(t[0],20)+'</span><span class="l">'+t[1]+'</span></button>'; }).join("");
 }
 function render(){ renderTabbar(); renderTab(); if(S.sheet && LIVE_SHEETS[S.sheet]) renderSheet(); }
 function onData(){ render(); if(S.sheet==="sono" && !openSleep()) closeSheet(); }
-function renderTab(){ var fn=PAGES[S.tab]||PAGES.hoje; byId("app").innerHTML=fn(); tick(); }
+function renderTab(){ var fn=PAGES[S.tab]||PAGES.hoje; byId("app").innerHTML=fn(); tick();
+  if(S.tab==="dicas" && !WEATHER && !weatherBusy && !weatherTried){ weatherTried=true; loadWeather(); } }
 
 function eventRow(e,now){ var v=evView(e,now);
   return '<button class="li" data-a="openEv" data-v="'+esc(v.id)+'"><span class="sq c-'+v.c+'">'+v.e+'</span><span class="b"><span class="t" style="display:block">'+esc(v.title)+'</span><span class="s" style="display:block">'+subHtml(v)+'</span></span>'
@@ -900,6 +905,8 @@ PAGES.hoje=function(){
   html+='<div class="hello"><div class="col" style="gap:2px;min-width:0"><div class="greet">'+greet+'</div><div class="bname">'+esc(babyName())+'</div>'
     +'<button class="bage" data-a="sheet" data-v="bebe">'+(d!=null? esc(ageText(d)) : "toque para definir o nascimento →")+'</button></div>'
     +'<button class="avs" data-a="tab" data-v="familia" aria-label="Quem cuida junto">'+avs+'</button></div>';
+
+  var _mi=monthiToday(); if(_mi) html+='<button class="banner c-lav" data-a="tab" data-v="crescer" style="font-weight:800">🎉 '+esc(babyName())+' faz '+monthLbl(_mi)+' hoje! Veja o que esperar →</button>';
 
   if(S.mode==="local" && !isConfigured()) html+='<div class="banner c-pea">⚙️ Firebase não configurado — salvando só neste aparelho.</div>';
   if(deferredPrompt && !lsGet("mamei.installDismiss",false)) html+='<div class="banner c-lav">📲 Instale o Mamei na tela inicial.<button data-a="install">Instalar</button></div>';
@@ -1094,11 +1101,71 @@ PAGES.calma=function(){
     +'<div class="col" style="gap:8px;width:100%"><div style="font-size:12.5px;font-weight:800">Desligar depois de</div><div class="timers">'
     +[[15,"15"],[30,"30"],[45,"45"],[60,"60"],[0,"∞"]].map(function(t){ return '<button data-a="timer" data-v="'+t[0]+'" aria-pressed="'+(n.timer===t[0])+'">'+t[1]+'</button>'; }).join("")+'</div></div>'
     +'<div class="row" style="width:100%"><div style="font-size:12.5px;font-weight:800">Volume</div><input type="range" min="5" max="100" value="'+n.vol+'" id="vol" aria-label="Volume"></div></div>'
+    +'<button class="card press" data-a="sheet" data-v="musicas" style="flex-direction:row;align-items:center;gap:12px;padding:16px;text-align:left">'
+    +'<span style="font-size:26px">🎵</span><span style="flex:1;min-width:0"><span style="display:block;font-weight:900;font-size:16px">Músicas no Spotify</span>'
+    +'<span class="cap" style="font-weight:600">Cristãs p/ dormir, ninar, clássica, lo-fi, Disney</span></span><span class="muted">›</span></button>'
     +'<div class="nl"><div class="between"><div class="col" style="gap:2px"><div style="font-size:14px;font-weight:800;opacity:.75">Luz noturna</div><div style="font-size:20px;font-weight:900">Tela vira abajur</div></div>'
     +'<div class="orb" style="background:rgb('+lc.join(",")+');box-shadow:0 0 40px 10px rgba('+lc.join(",")+',.45)"></div></div>'
     +'<div style="font-size:13.5px;font-weight:600;line-height:1.5;opacity:.8">Luz quente e fraca para trocar a fralda ou amamentar sem acordar ninguém. Arraste para cima ou para baixo para ajustar.</div>'
     +'<div class="opts">'+[["ambar","Âmbar"],["vermelho","Vermelho"]].map(function(c){ return '<button data-a="lightColor" data-v="'+c[0]+'" style="border-color:'+(LIGHT.color===c[0]?"rgb("+LIGHTC[c[0]].join(",")+")":"transparent")+'">'+c[1]+'</button>'; }).join("")+'</div>'
     +'<button class="go" data-a="lightOn">Acender</button></div></div>';
+};
+
+// ---------- Dicas (clima + roupa + cuidados) ----------
+var WEATHER=null, weatherBusy=false, weatherTried=false;
+try{ var _wc=JSON.parse(localStorage.getItem("mamei.weather")||"null"); if(_wc && _wc.data && Date.now()-_wc.ts<2*3600000) WEATHER=_wc.data; }catch(e){}
+function clothingFor(t){
+  if(t>=30) return {ic:"🥵", x:"Calor forte: body de manga curta ou só fralda, algodão leve. Ambiente arejado, ofereça leite com frequência. Não agasalhe."};
+  if(t>=26) return {ic:"☀️", x:"Body de manga curta + fralda, ou um macacão bem leve de algodão."};
+  if(t>=22) return {ic:"🌤️", x:"Body de manga curta + macacão leve de algodão."};
+  if(t>=18) return {ic:"🧥", x:"Body de manga longa + macacão, e uma meia."};
+  if(t>=14) return {ic:"🧣", x:"Body manga longa + macacão + casaquinho, meia e, pra sair, touca."};
+  if(t>=10) return {ic:"❄️", x:"Camadas: body manga longa + macacão + casaco, meia, touca. Manta ao sair."};
+  return {ic:"🥶", x:"Frio intenso: várias camadas, macacão fechado, casaco, touca, luvas e meia. Manta grossa ao sair, sem cobrir o rosto."};
+}
+function wIcon(c){ if(c==null) return "🌡️"; if(c===0) return "☀️"; if(c<=2) return "🌤️"; if(c<=3) return "☁️"; if(c<=48) return "🌫️"; if(c<=67) return "🌧️"; if(c<=77) return "🌨️"; if(c<=82) return "🌧️"; if(c<=86) return "🌨️"; return "⛈️"; }
+var DTIPS=[
+  {ic:"😴", b:"<b>Sono seguro:</b> de barriga pra cima, no berço firme, sem travesseiro, almofada ou bichos soltos."},
+  {ic:"🌡️", b:"<b>Febre:</b> acima de 37,8°C é febre. Em bebê com menos de 3 meses, procure o pediatra."},
+  {ic:"🤱", b:"<b>Hidratação:</b> bebê mamando bem faz vários xixis claros por dia — bom sinal."},
+  {ic:"🫧", b:"<b>Arroto:</b> depois de mamar, mantenha na vertical alguns minutos pra sair o arzinho."},
+  {ic:"🚗", b:"<b>No carro:</b> sempre na cadeirinha, virada pra trás o máximo de tempo possível."},
+  {ic:"☀️", b:"<b>Sol:</b> antes dos 6 meses, nada de protetor — prefira sombra e roupa leve."},
+  {ic:"🛁", b:"<b>Banho:</b> água morna (~37°C), teste no cotovelo. Nunca deixe sozinho na banheira."},
+  {ic:"🧴", b:"<b>Fralda:</b> limpe da frente pra trás e deixe a pele respirar antes de fechar."}
+];
+function loadWeather(){
+  if(weatherBusy) return; weatherBusy=true;
+  if(!navigator.geolocation){ weatherBusy=false; WEATHER={err:"Localização não disponível neste aparelho."}; render(); return; }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    fetch("https://api.open-meteo.com/v1/forecast?latitude="+pos.coords.latitude+"&longitude="+pos.coords.longitude+"&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto")
+      .then(function(r){ return r.json(); }).then(function(j){
+        WEATHER={ temp:Math.round(j.current.temperature_2m), feels:Math.round(j.current.apparent_temperature), code:j.current.weather_code, max:Math.round(j.daily.temperature_2m_max[0]), min:Math.round(j.daily.temperature_2m_min[0]) };
+        try{ localStorage.setItem("mamei.weather", JSON.stringify({ts:Date.now(), data:WEATHER})); }catch(e){}
+        weatherBusy=false; render();
+      }).catch(function(){ weatherBusy=false; WEATHER={err:"Não consegui buscar o clima agora. Tente de novo."}; render(); });
+  }, function(){ weatherBusy=false; WEATHER={err:"Permita a localização pra ver a dica de roupa pelo clima de hoje."}; render(); }, {timeout:10000, maximumAge:1800000});
+}
+PAGES.dicas=function(){
+  var html='<div><h1 class="pg-title">Dicas</h1><div class="pg-sub">Clima de hoje e cuidados do dia.</div></div>';
+  if(WEATHER && !WEATHER.err){ var w=WEATHER, cl=clothingFor(w.feels!=null?w.feels:w.temp);
+    html+='<div class="card" style="gap:12px"><div class="row" style="gap:14px;align-items:center"><div style="font-size:34px">'+wIcon(w.code)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:34px;font-weight:900;line-height:1">'+w.temp+'°</div><div class="cap" style="font-weight:600">sensação '+w.feels+'° · hoje '+w.min+'°–'+w.max+'°</div></div>'
+      +'<button class="pill-btn" data-a="weather" style="padding:10px 14px;font-size:13px">Atualizar</button></div>'
+      +'<div style="border-top:1px solid var(--line);padding-top:12px"><div style="font-weight:800;margin-bottom:6px">'+cl.ic+' Como vestir o bebê</div><div style="font-weight:600;line-height:1.5">'+esc(cl.x)+'</div></div>'
+      +'<div class="cap" style="font-weight:600;line-height:1.5">Regra: o bebê sente como você — vista nele <b>uma camada a mais</b>. Nuca suada = quente demais; nuca fria = falta agasalho.</div></div>';
+  } else {
+    html+='<div class="card" style="gap:10px"><div style="font-weight:700">'+(WEATHER&&WEATHER.err? esc(WEATHER.err) : "Buscando o clima…")+'</div>'
+      +'<button class="btn min" data-a="weather">Ver o clima de hoje</button>'
+      +'<div class="cap" style="font-weight:600;line-height:1.5">Dica geral: vista no bebê uma camada a mais do que você usaria.</div></div>';
+  }
+  html+='<div class="card-t" style="padding:4px 2px 0">Cuidados do dia</div>';
+  var s=(new Date().getFullYear()*372+new Date().getMonth()*31+new Date().getDate());
+  [DTIPS[s%DTIPS.length], DTIPS[(s+3)%DTIPS.length], DTIPS[(s+5)%DTIPS.length]].forEach(function(t){
+    html+='<div class="card" style="flex-direction:row;gap:12px;align-items:flex-start;padding:14px"><span style="font-size:22px">'+t.ic+'</span><span style="font-weight:600;line-height:1.5">'+t.b+'</span></div>';
+  });
+  html+='<div class="cap" style="font-weight:600;padding:4px 2px">Orientações gerais — não substituem o pediatra.</div>';
+  return '<div class="pg" style="gap:14px">'+html+'</div>';
 };
 
 PAGES.familia=function(){
@@ -1152,7 +1219,7 @@ function remRow(k,e,c,label,sub){ return '<div class="rem"><span class="sq c-'+c
    ===================================================================== */
 var LIVE_SHEETS={feed:1, sono:1, resumo:1};
 var TITLES={feed:"Mamada", sono:"Sono", fralda:"Troca de fralda", nota:"Anotar", medidas:"Peso e medidas", resumo:"Resumo para o pediatra",
-  evento:"Registro", convite:"Convidar para o diário", apagar:"Apagar histórico?", bebe:"Bebê", eu:"Quem é você?", ios:"Adicionar à Tela de Início"};
+  evento:"Registro", convite:"Convidar para o diário", apagar:"Apagar histórico?", bebe:"Bebê", eu:"Quem é você?", ios:"Adicionar à Tela de Início", musicas:"Músicas"};
 function openSheet(name,arg){ S.sheet=name; S.arg=arg||{}; byId("sheetWrap").hidden=false; document.body.classList.add("lock"); renderSheet(); }
 function closeSheet(){ S.sheet=null; byId("sheetWrap").hidden=true; document.body.classList.remove("lock"); }
 function renderSheet(){
@@ -1163,6 +1230,14 @@ function renderSheet(){
   byId("sheetBody").innerHTML=out; tick();
 }
 var SHEETS={};
+SHEETS.musicas=function(){
+  var G=[["4zdC3IpPIT9xurSB0RujRw","Cristãs p/ dormir"],["37i9dQZF1DWZd79rJ6a7lp","Ninar"],["37i9dQZF1DX4sWSpwq3LiO","Piano clássico"],["37i9dQZF1DWWQRwui0ExPn","Lo-fi"],["37i9dQZF1DX8C9xQcOrE6T","Disney"]];
+  var cur=S.spot||G[0][0];
+  return '<div class="col" style="gap:12px"><div class="cap" style="font-weight:600;line-height:1.5">Escolha o estilo. Toca sem login (prévia) — ou completo se já estiver logada no Spotify.</div>'
+    +'<div class="sounds">'+G.map(function(g){ return '<button data-a="spot" data-v="'+g[0]+'" aria-pressed="'+(g[0]===cur)+'">'+g[1]+'</button>'; }).join("")+'</div>'
+    +'<iframe id="spotFrame" title="Playlist no Spotify" style="border-radius:14px;border:0;display:block" src="https://open.spotify.com/embed/playlist/'+cur+'?utm_source=generator" width="100%" height="352" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>'
+    +'<a href="https://open.spotify.com/playlist/'+cur+'" target="_blank" rel="noopener" style="font-weight:800;color:var(--lavInk);text-decoration:none;text-align:center">Abrir no Spotify ↗</a></div>';
+};
 SHEETS.feed=function(){
   // Peito abre sozinho; Mamadeira e Extraído ficam juntos (é tudo leite no frasco)
   var html= S.feedMode==="peito"? "" : seg([["mamadeira","Mamadeira"],["bomba","Extraído"]], S.feedMode, "feedSeg");
@@ -1328,6 +1403,10 @@ function tick(){
 var A={
   tab:function(v){ if(S.tab===v){ window.scrollTo(0,0); return; } S.tab=v; lsSet("mamei.tab",v); S.dayIdx=0; render(); window.scrollTo(0,0); },
   sheet:function(v){ var arg={}; if(v==="bebe") arg.sex=S.cfg.sex; openSheet(v,arg); if(v==="nota") setTimeout(function(){ var t=byId("noteText"); if(t) t.focus(); },120); },
+  weather:function(){ if(WEATHER&&WEATHER.err) WEATHER=null; loadWeather(); },
+  spot:function(v){ S.spot=v; var f=byId("spotFrame"); if(f) f.src="https://open.spotify.com/embed/playlist/"+v+"?utm_source=generator";
+    var body=byId("sheetBody"); if(body){ body.querySelectorAll('[data-a="spot"]').forEach(function(x){ x.setAttribute("aria-pressed", x.getAttribute("data-v")===v); });
+      var a=body.querySelector('a[href*="open.spotify.com/playlist"]'); if(a) a.href="https://open.spotify.com/playlist/"+v; } },
   closeSheet:closeSheet,
   feedMode:function(v){ S.feedMode=v; openSheet("feed"); },
   feedSeg:function(v){ S.feedMode=v; renderSheet(); },
@@ -1742,7 +1821,10 @@ if("serviceWorker" in navigator){
   navigator.serviceWorker.addEventListener("controllerchange", function(){ if(!hadSW){ hadSW=true; return; } swReload=true; if(!S.sheet) location.reload(); });
   setInterval(function(){ if(swReload && !S.sheet) location.reload(); }, 1000);
   window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js",{scope:"./"}).then(function(reg){
+    function watch(w){ if(!w) return; w.addEventListener("statechange", function(){ if(w.state==="activated" && navigator.serviceWorker.controller){ swReload=true; if(!S.sheet) location.reload(); } }); }
+    reg.addEventListener("updatefound", function(){ watch(reg.installing); });
     document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") reg.update().catch(function(){}); });
+    reg.update().catch(function(){});
   }).catch(function(e){ console.warn("SW",e); }); });
 }
 })();
