@@ -499,6 +499,14 @@ function ageDays(){ if(!S.cfg.birth) return null; var d=Math.floor((Date.now()-n
 function monthsOldB(){ if(!S.cfg.birth) return null; var b=new Date(S.cfg.birth+"T00:00:00"), n=new Date(); var m=(n.getFullYear()-b.getFullYear())*12+(n.getMonth()-b.getMonth()); if(n.getDate()<b.getDate()) m--; return m<0?0:m; }
 function monthiToday(){ if(!S.cfg.birth) return 0; var b=new Date(S.cfg.birth+"T00:00:00"), n=new Date(); var last=new Date(n.getFullYear(),n.getMonth()+1,0).getDate(); var tgt=Math.min(b.getDate(),last); if(n.getDate()!==tgt) return 0; var m=monthsOldB(); return m>=1?m:0; }
 function monthLbl(m){ if(m<12) return m+(m===1?" mês":" meses"); var y=Math.floor(m/12), r=m%12; return y+(y===1?" ano":" anos")+(r?" e "+r+" m":""); }
+function monthiBanner(){
+  var m=monthiToday(); if(!m) return "";
+  var EMO=["Mais um mês de vocês juntos 💛","Como cresceu — e amadureceu com você 💛","Mais um mês de descobertas, colo e amor 💛","Cada dia um pouquinho mais, do seu jeitinho 💛","Quanta coisa em tão pouco tempo 💛","Mais um mês de histórias que só vocês têm 💛"];
+  var exp = (typeof TIPS_M!=="undefined" && TIPS_M[m]) || ({1:"Agora o olhar acompanha rostos e vêm os primeiros sons.", 2:"O sorriso social costuma aparecer — sorria de volta!"})[m] || "Toque pra ver o que esperar dessa fase.";
+  return '<button class="banner c-lav" data-a="tab" data-v="crescer" style="flex-direction:column;align-items:flex-start;gap:4px;text-align:left">'
+    +'<div style="font-weight:900">🎉 '+esc(babyName())+' faz '+monthLbl(m)+'! '+EMO[m%EMO.length]+'</div>'
+    +'<div style="font-weight:600;font-size:13px;opacity:.92">'+esc(exp)+' <b>Ver mais →</b></div></button>';
+}
 function wakeWindow(days){
   if(days<28) return [40,60];
   var w=days/7; if(w<8) return [60,90]; if(w<13) return [75,105]; if(w<17) return [90,120];
@@ -853,6 +861,12 @@ function finishFeed(silent){
   if(!silent){ toast("Mamada salva · "+dur(E+Dm), function(){ store.update(f.id,{endTs:null}); }); closeSheet(); }
 }
 function discardFeed(){ var f=openFeed(); if(f) store.remove(f.id); closeSheet(); toast("Mamada descartada"); }
+function startPeito(){
+  var f=openFeed();
+  if(!f){ var now=Date.now(); var sl=openSleep(); if(sl) store.update(sl.id,{endTs:now});
+    var id=store.add({type:"feed", kind:"peito", ts:now, endTs:null, note:""}); toast("Começou a mamar · "+hm(now), function(){ store.remove(id); }); }
+  S.feedMode="peito"; openSheet("feed");
+}
 function startSleep(){
   var sl=openSleep(); if(sl){ openSheet("sono"); return; }
   if(openFeed()) finishFeed(true);
@@ -906,7 +920,7 @@ PAGES.hoje=function(){
     +'<button class="bage" data-a="sheet" data-v="bebe">'+(d!=null? esc(ageText(d)) : "toque para definir o nascimento →")+'</button></div>'
     +'<button class="avs" data-a="tab" data-v="familia" aria-label="Quem cuida junto">'+avs+'</button></div>';
 
-  var _mi=monthiToday(); if(_mi) html+='<button class="banner c-lav" data-a="tab" data-v="crescer" style="font-weight:800">🎉 '+esc(babyName())+' faz '+monthLbl(_mi)+' hoje! Veja o que esperar →</button>';
+  html+=monthiBanner();
 
   if(S.mode==="local" && !isConfigured()) html+='<div class="banner c-pea">⚙️ Firebase não configurado — salvando só neste aparelho.</div>';
   if(deferredPrompt && !lsGet("mamei.installDismiss",false)) html+='<div class="banner c-lav">📲 Instale o Mamei na tela inicial.<button data-a="install">Instalar</button></div>';
@@ -924,7 +938,7 @@ PAGES.hoje=function(){
     var desc="nenhuma ainda";
     if(lf){ var k=K(lf); desc= k==="mamadeira"? "mamadeira"+(lf.ml!=null?" "+lf.ml+" ml":"") : hasSides(lf)? "peito · terminou no "+(endSide(lf)||"?") : (lf.detail? lf.detail.toLowerCase() : "mamada de "+dur(lf.endTs-lf.ts)); }
     var ns=nextSide();
-    html+='<div class="duo"><button class="stat c-pea press" data-a="feedMode" data-v="peito"><span class="k">Última mamada</span><span class="n" data-ago-short="'+(lf?lf.endTs:"")+'">'+(lf? ago(now-lf.endTs).replace("há ","") : "—")+'</span><span class="d">'+esc(desc)+(lf? '<br>terminou às '+hm(lf.endTs) : '')+'</span><span class="tag">Começar pelo '+sideName(ns)+'</span></button>';
+    html+='<div class="duo"><button class="stat c-pea press" data-a="feedMode" data-v="peito"><span class="k">Última mamada</span><span class="n" data-ago-short="'+(lf?lf.endTs:"")+'">'+(lf? ago(now-lf.endTs).replace("há ","") : "—")+'</span><span class="d">'+esc(desc)+(lf? '<br>terminou às '+hm(lf.endTs) : '')+'</span><span class="tag">Toque para iniciar</span></button>';
     var ls=lastWhere(function(e){ return e.type==="sleep" && e.endTs; });
     if(ls){
       var awM=Math.round((now-ls.endTs)/M), win=d!=null? wakeWindow(d) : null;
@@ -937,7 +951,7 @@ PAGES.hoje=function(){
 
   var ns2=nextSide(), vd=vitDToday();
   html+='<div class="col" style="gap:10px"><div class="acts">'
-    +act("peito", f? "Peito" : "Peito", f? (f.run? "mamando · lado "+f.run : "mamada pausada") : "começar no "+ns2, 'data-a="feedMode" data-v="peito"')
+    +act("peito", "Peito", f? (hasSides(f)? (f.run? "mamando · lado "+f.run : "mamada pausada") : "mamando agora") : "iniciar no peito", 'data-a="feedMode" data-v="peito"')
     +act("mamadeira","Mamadeira","registrar ml",'data-a="feedMode" data-v="mamadeira"')
     +act("sono", sl?"Acordou":"Dormir", sl?"encerrar sono":"iniciar sono", sl?'data-a="wake"':'data-a="startSleep"')
     +act("fralda","Fralda","xixi ou cocô",'data-a="sheet" data-v="fralda"')
@@ -1243,14 +1257,16 @@ SHEETS.feed=function(){
   // Peito abre sozinho; Mamadeira e Extraído ficam juntos (é tudo leite no frasco)
   var html= S.feedMode==="peito"? "" : seg([["mamadeira","Mamadeira"],["bomba","Extraído"]], S.feedMode, "feedSeg");
   if(S.feedMode==="peito"){
-    var f=openFeed(), ns=nextSide(), lpe=lastPeitoEnd(), now=Date.now();
-    var hint= f? "Mamada começou às "+hm(f.ts) : lpe? "Sugestão: começar pelo "+ns+" · a última terminou "+(ns===lpe?"nele":"no "+lpe) : "Toque no lado em que vai começar";
-    html+='<div class="center">'+(f? startBox("Começou às",f.ts) : '<div class="hint c-pea">'+hint+'</div>')+'<div class="big-n" data-live="feedTotal"></div><div class="sides">'
-      +["E","D"].map(function(k){ var run=f&&f.run===k, sug=!f&&k===ns, ms=f? sideMs(f,k,now) : 0;
-        var st= run? "mamando" : sug? "sugerido" : (f&&ms>0)? "pausado" : "toque p/ iniciar";
-        return '<div class="side'+(run?" run":"")+(sug?" sug":"")+'">'+(run?'<span class="pulse"></span>':'')+'<button data-a="tapSide" data-v="'+k+'" aria-label="Lado '+sideName(k)+'"><span class="k">'+k+'</span><span class="tm num" data-live="side'+k+'"></span><span class="st">'+st+'</span></button></div>'; }).join("")
-      +'</div><div class="cap" style="font-size:13px;font-weight:600;text-align:center">Toque num lado para iniciar ou pausar. Trocar de lado é só tocar no outro.</div>'
-      +'<div class="btns" style="width:100%"><button class="btn gray" data-a="discardFeed"'+(f?'':' disabled style="opacity:.5"')+'>Descartar</button><button class="btn pea x2" data-a="finishFeed">Finalizar e salvar</button></div></div>';
+    var f=openFeed();
+    if(!f){
+      html+='<div class="center" style="gap:16px"><div class="hint c-pea">Um cronômetro só — registra o tempo total no peito, sem precisar escolher ou trocar de lado.</div>'
+        +'<button class="btn pea x2" data-a="startPeito">Começar a mamar</button></div>';
+    } else {
+      html+='<div class="center" style="gap:16px">'+startBox("Começou às",f.ts)
+        +'<div class="breath c-pea"><div style="font-size:13px;font-weight:800">Mamando no peito</div><div class="num" style="font-size:46px;font-weight:900;line-height:1" data-live="feedTotal"></div><div style="font-size:13px;font-weight:700">desde '+hm(f.ts)+'</div></div>'
+        +'<div class="cap" style="font-size:13px;font-weight:600;text-align:center">Dá pra corrigir o horário de início acima se esqueceu de apertar na hora.</div>'
+        +'<div class="btns" style="width:100%"><button class="btn gray" data-a="discardFeed">Descartar</button><button class="btn pea x2" data-a="finishFeed">Finalizar e salvar</button></div></div>';
+    }
   } else if(S.feedMode==="mamadeira"){
     var b=S.bottle;
     html+='<div class="center"><div class="stepper"><button class="rnd" data-a="bottle" data-v="-10" aria-label="Menos">−</button><div class="col" style="align-items:center"><div class="num t-pea" style="font-size:60px;font-weight:900;line-height:1">'+b.ml+'</div><div class="cap" style="font-size:14px;font-weight:800">ml</div></div><button class="rnd" data-a="bottle" data-v="10" aria-label="Mais">+</button></div>'
@@ -1415,7 +1431,8 @@ var A={
     var body=byId("sheetBody"); if(body){ body.querySelectorAll('[data-a="spot"]').forEach(function(x){ x.setAttribute("aria-pressed", x.getAttribute("data-v")===v); });
       var a=body.querySelector('a[href*="open.spotify.com/playlist"]'); if(a) a.href="https://open.spotify.com/playlist/"+v; } },
   closeSheet:closeSheet,
-  feedMode:function(v){ S.feedMode=v; openSheet("feed"); },
+  feedMode:function(v){ if(v==="peito"){ startPeito(); return; } S.feedMode=v; openSheet("feed"); },
+  startPeito:function(){ startPeito(); },
   feedSeg:function(v){ S.feedMode=v; renderSheet(); },
   tapSide:function(v){ tapSide(v); },
   switchSide:function(v,el,ev){ ev.stopPropagation(); var f=openFeed(); tapSide(f&&f.run==="E"?"D":"E"); },
