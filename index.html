@@ -1203,6 +1203,7 @@ PAGES.familia=function(){
     +'<div class="cap" style="font-weight:600">No automático, o app escurece das 19h às 6h.</div></div>';
 
   html+='<div class="menu">'
+    +'<button data-a="sheet" data-v="entrar"><span class="e">🔗</span>Entrar em um diário existente</button>'
     +'<button data-a="sheet" data-v="resumo"><span class="e">📋</span>Resumo para o pediatra</button>'
     +((deferredPrompt||needsIOSInstall())? '<button data-a="install"><span class="e">📲</span>Instalar na tela inicial</button>' : '')
     +'<button data-a="onboarding"><span class="e">🎓</span>Ver o tutorial de novo</button>'
@@ -1219,7 +1220,7 @@ function remRow(k,e,c,label,sub){ return '<div class="rem"><span class="sq c-'+c
    ===================================================================== */
 var LIVE_SHEETS={feed:1, sono:1, resumo:1};
 var TITLES={feed:"Mamada", sono:"Sono", fralda:"Troca de fralda", nota:"Anotar", medidas:"Peso e medidas", resumo:"Resumo para o pediatra",
-  evento:"Registro", convite:"Convidar para o diário", apagar:"Apagar histórico?", bebe:"Bebê", eu:"Quem é você?", ios:"Adicionar à Tela de Início", musicas:"Músicas"};
+  evento:"Registro", convite:"Convidar para o diário", apagar:"Apagar histórico?", bebe:"Bebê", eu:"Quem é você?", ios:"Adicionar à Tela de Início", musicas:"Músicas", entrar:"Entrar em um diário"};
 function openSheet(name,arg){ S.sheet=name; S.arg=arg||{}; byId("sheetWrap").hidden=false; document.body.classList.add("lock"); renderSheet(); }
 function closeSheet(){ S.sheet=null; byId("sheetWrap").hidden=true; document.body.classList.remove("lock"); }
 function renderSheet(){
@@ -1355,6 +1356,12 @@ SHEETS.convite=function(){
     +'<div class="linkbox"><div>'+esc(shareLink().replace(/^https?:\/\//,""))+'</div><button data-a="copyLink">Copiar</button></div>'
     +'<button class="btn lav" data-a="shareLink">'+ic("share",18)+' Enviar pelo WhatsApp / outros</button>'
     +'<div class="cap" style="font-size:13px;font-weight:600;text-align:center">Quem abrir o link entra no diário de '+esc(babyName())+' sem precisar criar conta — e pode registrar também. Mande só para quem cuida junto.</div></div>';
+};
+SHEETS.entrar=function(){
+  return '<div class="col" style="gap:12px"><div class="cap" style="font-weight:600;line-height:1.5">Cole o <b>link do diário</b> que quem já usa te enviou (ou só o código <b>fam-…</b>). Você vai ver o mesmo diário e pode registrar junto — sem criar conta.</div>'
+    +'<input class="inp" id="joinInput" type="text" inputmode="url" placeholder="cole o link aqui" autocomplete="off" autocapitalize="off" spellcheck="false">'
+    +'<button class="btn lav" data-a="joinFamily">Entrar no diário</button>'
+    +'<div class="cap" style="font-weight:600;line-height:1.5">Dica (iPhone): no diário que você quer entrar, toque em <b>Convidar</b> e copie o link — ou peça pra quem já usa te mandar.</div></div>';
 };
 SHEETS.apagar=function(){
   return '<div class="muted" style="font-size:15px;font-weight:600;line-height:1.5">Isso apaga todos os registros de mamada, sono, fraldas, medidas e notas. Quem cuida junto também deixa de ver o histórico. O nome e o nascimento continuam.</div>'
@@ -1501,6 +1508,12 @@ var A={
   install:function(){ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.finally(function(){ deferredPrompt=null; lsSet("mamei.installDismiss",true); render(); }); } else openSheet("ios"); },
   copyLink:function(){ var u=shareLink(); if(navigator.clipboard) navigator.clipboard.writeText(u).then(function(){ toast("Link copiado"); }).catch(function(){ prompt("Copie o link:",u); }); else prompt("Copie o link:",u); },
   shareLink:function(){ var u=shareLink(); if(navigator.share) navigator.share({title:"Mamei", text:"Nosso diário do bebê 👶 — abra no seu celular:", url:u}).catch(function(){}); else A.copyLink(); },
+  joinFamily:function(){ var el=byId("joinInput"); if(!el) return; var v=(el.value||"").trim();
+    var m=v.match(/f=([A-Za-z0-9_-]{6,})/) || v.match(/(fam-[A-Za-z0-9_-]{6,})/) || v.match(/^([A-Za-z0-9_-]{6,})$/);
+    if(!m){ toast("Link ou código inválido. Cole o link do diário."); return; }
+    try{ localStorage.setItem("bebe.fid", m[1]); }catch(e){}
+    try{ localStorage.removeItem("mamei.weather"); }catch(e){}
+    location.href = location.origin + location.pathname; },
   wipeAll:wipeAll,
   bSex:function(v){ S.arg.sex=v; pressIn("bSex",v); },
   saveBaby:function(){ var n=byId("b_name").value.trim(), b=byId("b_birth").value||null; var p={name:n, birth:b}; if(S.arg.sex) p.sex=S.arg.sex; saveCfg(p); closeSheet(); toast("Salvo"); },
@@ -1777,7 +1790,8 @@ function showOnboarding(){ OB={step:0, name:S.cfg.name||"", birth:S.cfg.birth||"
 function renderOb(){
   var s=OB.step, body='';
   if(s===0) body='<img src="icons/logo-256.png" alt="" width="132" height="132" style="border-radius:34px;box-shadow:0 10px 30px rgba(150,80,40,.15)">'
-    +'<h1>Bem-vindos ao Mamei</h1><p>O diário do seu bebê. Mamadas, sono e fraldas anotados com um toque, e acompanhados por quem cuida junto.</p>';
+    +'<h1>Bem-vindos ao Mamei</h1><p>O diário do seu bebê. Mamadas, sono e fraldas anotados com um toque, e acompanhados por quem cuida junto.</p>'
+    +'<button class="link" data-a="sheet" data-v="entrar" style="font-size:14.5px;font-weight:800">Já têm um diário? Entrar com o link →</button>';
   if(s===1) body='<h2>Como vamos chamar o bebê?</h2><input class="inp" id="ob_name" placeholder="Nome" maxlength="28" value="'+esc(OB.name)+'" style="font-size:22px;font-weight:800;padding:16px 18px;border-radius:20px">'
     +'<div class="lbl" style="font-size:14px">Data de nascimento</div><input class="inp" type="date" id="ob_birth" value="'+esc(OB.birth)+'" style="font-size:17px;padding:14px 18px;border-radius:20px">'
     +'<div class="lbl" style="font-size:14px">É menina ou menino?</div>'+chips([["f","Menina"],["m","Menino"]], OB.sex, "obSex", "fill")
