@@ -140,7 +140,7 @@
   .act{display:flex; align-items:center; gap:12px; padding:14px; border-radius:22px; border:1px solid var(--line); background:var(--card); text-align:left; min-width:0}
   .act .sq{width:44px; height:44px; border-radius:15px}
   .act b{display:block; font-size:16px; font-weight:900} .act small{display:block; font-size:12.5px; font-weight:600; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .minis{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+  .minis{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   .mini{display:flex; align-items:center; justify-content:center; gap:7px; padding:12px 6px; border-radius:18px; border:1px solid var(--line); background:var(--card); font-size:13.5px; font-weight:800}
   .mini .e{font-size:17px; line-height:1}
   .mini.done{background:var(--but); color:var(--butInk); border-color:transparent}
@@ -237,7 +237,7 @@
   .play .ring2{position:absolute; inset:0; border-radius:50%; background:var(--lavInk); opacity:0}
   .playing .play .ring2{animation:mmPulse 2.4s ease-out infinite} .playing .play .ring2+.ring2{animation-delay:1.2s}
   .play button{position:relative; width:132px; height:132px; border-radius:50%; border:0; background:var(--lavInk); color:var(--lav); display:grid; place-items:center}
-  .sounds{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%}
+  .sounds{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; width:100%}
   .sounds button,.timers button{font-size:13.5px; font-weight:800; padding:11px 6px; border-radius:16px; border:0; background:var(--soft); color:var(--lavInk)}
   .sounds button[aria-pressed="true"],.timers button[aria-pressed="true"]{background:var(--lavInk); color:var(--lav)}
   .timers{display:flex; gap:6px} .timers button{flex:1; padding:8px 2px; border-radius:12px; font-size:12.5px}
@@ -616,7 +616,7 @@ var S={
   members:{},
   diarioView:"lista", dayIdx:0, metric:"kg", range:"7", allVac:false,
   bottle:{ml:90, milk:"materno", desc:true}, pump:{ml:110}, diaper:{kind:"xixi", color:null}, agoMin:0,
-  note:{tag:"Remédio"}, feedMode:"peito"
+  note:{tag:"Remédio"}, tummyMin:5, feedMode:"peito"
 };
 var THEME=(function(){ try{ return localStorage.getItem("mamei.theme")||"auto"; }catch(e){ return "auto"; } })();
 
@@ -783,6 +783,8 @@ function openSleep(){ for(var i=0;i<S.events.length;i++){ var e=S.events[i]; if(
 function lastWhere(fn){ for(var i=0;i<S.events.length;i++){ if(fn(S.events[i])) return S.events[i]; } return null; }
 function isVitD(e){ return e.type==="note" && e.tag==="Vitamina D"; }
 function vitDToday(){ var t0=sod(Date.now()); return lastWhere(function(e){ return isVitD(e) && e.ts>=t0; }); }
+function isTummy(e){ return e.type==="note" && e.tag==="Tummy time"; }
+function tummyMinToday(){ var t0=sod(Date.now()); return S.events.reduce(function(a,e){ return a+(isTummy(e) && e.ts>=t0? (e.min||0) : 0); },0); }
 function lastPeitoEnd(){ var e=lastWhere(function(x){ return x.type==="feed" && x.endTs && K(x)==="peito" && endSide(x); }); return e? endSide(e) : null; }
 function nextSide(){ var end=lastPeitoEnd(); if(!end) return "E"; return S.cfg.sideRule==="outro"? (end==="E"?"D":"E") : end; }
 function sideName(k){ return k==="E"?"esquerdo":"direito"; }
@@ -826,7 +828,8 @@ function evView(e,now){
       v.sub= v.ongoing? "desde "+hm(e.ts) : "dormiu "+hm(e.ts); if(!v.ongoing) v.subB="Acordou "+hm(e.endTs); v.dur=dur(sleepEnd(e,now)-e.ts); break;
     case "xixi": v.title="Xixi"; v.sub="troca de fralda"; break;
     case "coco": v.title="Cocô"; v.sub= e.color&&COLORS[e.color]? "cocô "+COLORS[e.color][0].toLowerCase() : "troca de fralda"; break;
-    case "nota": if(isVitD(e)) v.e="☀️"; v.title=e.tag||"Anotação"; v.sub= (e.note && e.note!==e.tag)? e.note : isVitD(e)? "dose do dia" : "anotação"; break;
+    case "nota": if(isVitD(e)) v.e="☀️"; v.title=e.tag||"Anotação"; v.sub= (e.note && e.note!==e.tag)? e.note : isVitD(e)? "dose do dia" : "anotação";
+      if(isTummy(e)){ v.e="💪"; v.sub="de bruços"; if(e.min) v.dur=e.min+" min"; } break;
     case "medida": v.title="Medidas"; v.sub=measureText(e)||"—"; break;
   }
   if(e.note && k!=="nota" && k!=="bomba") v.sub += " · "+e.note;
@@ -949,13 +952,14 @@ PAGES.hoje=function(){
     } else html+='<button class="stat c-lav press" data-a="startSleep"><span class="k">Sono</span><span class="n">—</span><span class="d">nenhum sono registrado</span><span class="tag">Toque para iniciar</span></button></div>';
   }
 
-  var ns2=nextSide(), vd=vitDToday();
+  var ns2=nextSide(), vd=vitDToday(), tt=tummyMinToday();
   html+='<div class="col" style="gap:10px"><div class="acts">'
     +act("peito", "Peito", f? (hasSides(f)? (f.run? "mamando · lado "+f.run : "mamada pausada") : "mamando agora") : "iniciar no peito", 'data-a="feedMode" data-v="peito"')
     +act("mamadeira","Mamadeira","registrar ml",'data-a="feedMode" data-v="mamadeira"')
     +act("sono", sl?"Acordou":"Dormir", sl?"encerrar sono":"iniciar sono", sl?'data-a="wake"':'data-a="startSleep"')
     +act("fralda","Fralda","xixi ou cocô",'data-a="sheet" data-v="fralda"')
     +'</div><div class="minis"><button class="mini press'+(vd?' done':'')+'" data-a="vitD"><span class="e">☀️</span>'+(vd?'Vit. D ✓':'Vitamina D')+'</button>'
+    +'<button class="mini press'+(tt?' done':'')+'" data-a="sheet" data-v="tummy"><span class="e">💪</span>'+(tt?'Tummy · '+tt+' min':'Tummy time')+'</button>'
     +'<button class="mini press" data-a="sheet" data-v="nota"><span class="e">📝</span>Anotar</button>'
     +'<button class="mini press" data-a="sheet" data-v="medidas"><span class="e">⚖️</span>Medidas</button></div></div>';
 
@@ -1103,7 +1107,9 @@ function growthCard(d){
   return html;
 }
 
-var SOUNDS=[["branco","Branco"],["rosa","Rosa"],["marrom","Marrom"],["chuva","Chuva"],["utero","Útero"],["shhh","Shhh"]];
+var SOUNDS=[["branco","Branco"],["rosa","Rosa"],["marrom","Marrom"],["chuva","Chuva"],["chuveiro","Chuveiro"],["utero","Útero"],["shhh","Shhh"]];
+// sons gravados (arquivo em sounds/); os outros são gerados na hora
+var SOUND_FILES={shhh:"sounds/shh.mp3", chuveiro:"sounds/chuveiro.mp3"};
 var LIGHTC={ambar:[255,150,60], vermelho:[255,45,25]};
 PAGES.calma=function(){
   var n=NOISE, name=(SOUNDS.filter(function(s){ return s[0]===n.kind; })[0]||SOUNDS[0])[1], lc=LIGHTC[LIGHT.color];
@@ -1233,7 +1239,7 @@ function remRow(k,e,c,label,sub){ return '<div class="rem"><span class="sq c-'+c
    Sheets
    ===================================================================== */
 var LIVE_SHEETS={feed:1, sono:1, resumo:1};
-var TITLES={feed:"Mamada", sono:"Sono", fralda:"Troca de fralda", nota:"Anotar", medidas:"Peso e medidas", resumo:"Resumo para o pediatra",
+var TITLES={feed:"Mamada", sono:"Sono", fralda:"Troca de fralda", nota:"Anotar", tummy:"Tummy time", medidas:"Peso e medidas", resumo:"Resumo para o pediatra",
   evento:"Registro", convite:"Convidar para o diário", apagar:"Apagar histórico?", bebe:"Bebê", eu:"Quem é você?", ios:"Adicionar à Tela de Início", musicas:"Músicas", entrar:"Entrar em um diário"};
 function openSheet(name,arg){ S.sheet=name; S.arg=arg||{}; byId("sheetWrap").hidden=false; document.body.classList.add("lock"); renderSheet(); }
 function closeSheet(){ S.sheet=null; byId("sheetWrap").hidden=true; document.body.classList.remove("lock"); }
@@ -1303,6 +1309,13 @@ SHEETS.nota=function(){
     +'<textarea class="inp" id="noteText" placeholder="Ex.: paracetamol, 5 gotas" maxlength="300"></textarea>'
     +'<div class="col" style="gap:8px"><div class="lbl">Quando</div>'+agoChips()+'</div>'
     +'<button class="btn" data-a="saveNote">Salvar anotação</button>';
+};
+SHEETS.tummy=function(){
+  var tt=tummyMinToday();
+  return '<div class="cap" style="font-weight:600;margin-top:-6px">Bebê de bruços, acordado e com alguém olhando. Fortalece pescoço e costas.'+(tt? ' Hoje: <b>'+tt+' min</b>.' : '')+'</div>'
+    +'<div class="col" style="gap:8px"><div class="lbl">Quanto tempo</div>'+chips([[2,"2 min"],[3,"3 min"],[5,"5 min"],[10,"10 min"],[15,"15 min"],[20,"20 min"]], S.tummyMin, "tummyMin", "fill")+'</div>'
+    +'<div class="col" style="gap:8px"><div class="lbl">Quando</div>'+agoChips()+'</div>'
+    +'<button class="btn" data-a="saveTummy">Registrar tummy time</button>';
 };
 SHEETS.medidas=function(){
   var last={}; allMeasures().forEach(function(e){ ["weight","height","head"].forEach(function(k){ if(e[k]!=null) last[k]=e[k]; }); });
@@ -1468,6 +1481,9 @@ var A={
     if(k!=="xixi"){ var e2={type:"poop", ts:ts, note:""}; if(S.diaper.color) e2.color=S.diaper.color; if(pair) e2.pair=pair; ids.push(store.add(e2)); }
     closeSheet(); S.agoMin=0; toast("Troca registrada · "+hm(ts), function(){ ids.forEach(function(i){ store.remove(i); }); });
   },
+  tummyMin:function(v){ S.tummyMin=+v; renderSheet(); },
+  saveTummy:function(){ var m=S.tummyMin, ts=Date.now()-S.agoMin*M;
+    var id=store.add({type:"note", tag:"Tummy time", min:m, note:m+" min", ts:ts}); closeSheet(); S.agoMin=0; toast("Tummy time · "+m+" min", function(){ store.remove(id); }); },
   noteTag:function(v){ S.note.tag=v; document.querySelectorAll('[data-a="noteTag"]').forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-v")===v); }); },
   vitD:function(){ var d=vitDToday(); if(d && !window.confirm("Já deu vitamina D hoje às "+hm(d.ts)+". Registrar outra dose?")) return;
     var id=store.add({type:"note", tag:"Vitamina D", note:"Vitamina D", ts:Date.now()}); toast("Vitamina D registrada", function(){ store.remove(id); }); },
@@ -1605,12 +1621,12 @@ function toast(msg,fn){ byId("toastMsg").textContent=msg; undoFn=fn||null; var t
 byId("toastUndo").addEventListener("click", function(){ if(undoFn) undoFn(); byId("toast").hidden=true; undoFn=null; });
 
 /* =====================================================================
-   Ruído (6 sons) — Web Audio; "Shhh" usa a gravação do app atual
+   Ruído (7 sons) — Web Audio; "Shhh" e "Chuveiro" usam gravações
    ===================================================================== */
 var NOISE=Object.assign({kind:"marrom", timer:30, vol:60}, lsGet("mamei.noise",{}), {playing:false, endAt:0});
 function saveNoise(){ lsSet("mamei.noise",{kind:NOISE.kind, timer:NOISE.timer, vol:NOISE.vol}); }
-var AC=null, NODES=null, shhBuf=null, noiseReq=0;
-function noiseGain(){ return NOISE.vol/100*(NOISE.kind==="shhh"?1:.6); }
+var AC=null, NODES=null, fileBufs={}, noiseReq=0;
+function noiseGain(){ return NOISE.vol/100*(SOUND_FILES[NOISE.kind]?1:.6); }
 function noiseBuf(kind){
   var len=AC.sampleRate*4, b=AC.createBuffer(1,len,AC.sampleRate), d=b.getChannelData(0), b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0,last=0;
   for(var i=0;i<len;i++){ var w=Math.random()*2-1;
@@ -1619,17 +1635,19 @@ function noiseBuf(kind){
     else { last=(last+.02*w)/1.02; d[i]=last*3.5; } }
   return b;
 }
-function loadShh(){ if(shhBuf) return Promise.resolve(shhBuf);
-  return fetch("sounds/shh.mp3").then(function(r){ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-    .then(function(ab){ return new Promise(function(ok,no){ AC.decodeAudioData(ab,ok,no); }); }).then(function(b){ shhBuf=b; return b; }); }
+function loadSound(kind){ if(fileBufs[kind]) return Promise.resolve(fileBufs[kind]);
+  return fetch(SOUND_FILES[kind]).then(function(r){ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(function(ab){ return new Promise(function(ok,no){ AC.decodeAudioData(ab,ok,no); }); }).then(function(b){ fileBufs[kind]=b; return b; }); }
 function killNodes(){ var n=NODES; if(!n) return; try{ n.g.gain.setTargetAtTime(0,AC.currentTime,.15); setTimeout(function(){ try{ n.src.stop(); if(n.osc) n.osc.stop(); }catch(e){} },500); }catch(e){} NODES=null; }
 function noiseStart(){
   try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended") AC.resume(); }catch(e){ toast("Não consegui tocar o som neste aparelho."); return; }
   killNodes(); var req=++noiseReq, kind=NOISE.kind;
   NOISE.playing=true; NOISE.endAt= NOISE.timer? Date.now()+NOISE.timer*M : 0; refreshNoiseUI();
-  var bufP= kind==="shhh"? loadShh() : Promise.resolve(noiseBuf(kind));
+  var bufP= SOUND_FILES[kind]? loadSound(kind) : Promise.resolve(noiseBuf(kind));
   bufP.then(function(buf){ if(req!==noiseReq || !NOISE.playing) return;
     var src=AC.createBufferSource(); src.buffer=buf; src.loop=true;
+    // mp3 tem um silêncio curtinho nas pontas: pula ele pro loop do chuveiro não "piscar"
+    if(kind==="chuveiro" && buf.duration>1){ src.loopStart=.06; src.loopEnd=buf.duration-.06; }
     var f=AC.createBiquadFilter(), g=AC.createGain(), base=noiseGain();
     if(kind==="utero"){ f.type="lowpass"; f.frequency.value=380; } else if(kind==="chuva"){ f.type="highpass"; f.frequency.value=450; } else { f.type="lowpass"; f.frequency.value=11000; }
     g.gain.value=0; src.connect(f); f.connect(g); g.connect(AC.destination); g.gain.setTargetAtTime(base,AC.currentTime,.4);

@@ -1,13 +1,14 @@
 /* Service Worker — Mamei
    Cache do "app shell" para funcionar offline e ser instalável.
    Suba a versão (CACHE) sempre que mudar os arquivos, pra forçar atualização. */
-const CACHE = "mamei-v11";
+const CACHE = "mamei-v12";
 const SHELL = [
   "./",
   "./index.html",
   "./firebase-config.js",
   "./manifest.webmanifest",
   "./sounds/shh.mp3",
+  "./sounds/chuveiro.mp3",
   "./icons/mamei-192.png",
   "./icons/logo-256.png",
   "./icons/mamei-512.png",
